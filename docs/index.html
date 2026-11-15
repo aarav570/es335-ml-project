@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Condition-based maintenance on simulated turbofan engines — ES 335</title>
+  <meta name="description" content="ES 335 Machine Learning project evaluating whether causal trailing sensor trends beat fixed-schedule replacement on NASA C-MAPSS FD001.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/report.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="page-shell">
+    <!-- Wide-Screen Sticky Section Rail -->
+    <nav class="section-rail" aria-label="Report sections">
+      <div class="rail-title">ES 335 Report</div>
+      <ol class="rail-list">
+        <li><a href="#question">1. Question</a></li>
+        <li><a href="#data">2. Data</a></li>
+        <li><a href="#preprocessing">3. Preprocessing</a></li>
+        <li><a href="#baseline-and-methods">4. Baseline and methods</a></li>
+        <li><a href="#evaluation">5. Evaluation</a></li>
+        <li><a href="#results">6. Results</a></li>
+        <li><a href="#errors">7. Errors</a></li>
+        <li><a href="#limitations">8. Limitations</a></li>
+        <li><a href="#conclusion">9. Conclusion</a></li>
+        <li><a href="#reproduction">10. Reproduction</a></li>
+      </ol>
+      <div class="rail-footer">
+        <a href="#top">Back to top</a>
+        <a href="https://github.com/dhvanilshah2007/es335-ml-project" target="_blank" rel="noopener">Source repository</a>
+      </div>
+    </nav>
+
+    <div class="report-column">
+      <!-- Narrow-Screen Compact Top Menu -->
+      <details class="mobile-nav">
+        <summary>ES 335 Report Navigation</summary>
+        <ol class="mobile-nav-list">
+          <li><a href="#top">Top</a></li>
+          <li><a href="#question">1. Question</a></li>
+          <li><a href="#data">2. Data</a></li>
+          <li><a href="#preprocessing">3. Preprocessing</a></li>
+          <li><a href="#baseline-and-methods">4. Baseline and methods</a></li>
+          <li><a href="#evaluation">5. Evaluation</a></li>
+          <li><a href="#results">6. Results</a></li>
+          <li><a href="#errors">7. Errors</a></li>
+          <li><a href="#limitations">8. Limitations</a></li>
+          <li><a href="#conclusion">9. Conclusion</a></li>
+          <li><a href="#reproduction">10. Reproduction</a></li>
+        </ol>
+      </details>
+
+      <!-- 0. Opening Block (no section number) -->
+      <header id="top" class="opening-block">
+        <p class="opening-meta">
+          <span>ES 335: Machine Learning (2026)</span>
+          <span class="meta-sep" aria-hidden="true">/</span>
+          <span>Dhvanil Shah (25110105) &amp; Aarav Malde (25110003)</span>
+          <span class="meta-sep" aria-hidden="true">/</span>
+          <a href="https://github.com/dhvanilshah2007/es335-ml-project" target="_blank" rel="noopener">GitHub repository</a>
+        </p>
+        <h1>Condition-based maintenance on simulated turbofan engines</h1>
+        <div class="opening-grid">
+          <div class="opening-lead">
+            <p class="opening-answer">
+              On 20 held-out simulated turbofan engines, replacing each unit when a 30-cycle trailing-sensor model triggers an alarm cuts mean maintenance cost by 68.8% (calibrated logistic regression, 0 failures) to 76.2% (gradient-boosted trees, 1 failure) compared with the best fixed replacement schedule (179 cycles) at a 100:1 failure-to-waste cost ratio.
+            </p>
+            <div class="opening-callouts">
+              <p class="opening-honesty">
+                <strong>Scope note:</strong> All findings come from simulated NASA C-MAPSS FD001 runs (single sea-level regime, single compressor fault mode), a 20-engine held-out test set, and assumed failure-to-waste cost ratios — see <a href="#limitations">Limitations</a>.
+              </p>
+              <p class="opening-howto">
+                How to read this page: skim the sentence below each section heading for a 60-second overview, open the Details blocks for formulas and full tables, and use the interactive explorer in <a href="#results">Results</a> to test cost ratios and alarm thresholds.
+              </p>
+            </div>
+          </div>
+
+          <figure class="hero-figure" aria-labelledby="hero-fig-caption">
+            <div class="chart-svg-host" id="hero-chart-host" hidden></div>
+            <img class="chart-fallback" id="hero-chart-fallback" src="figures/hero_engine_24.png" alt="Held-out test engine #24 failing at cycle 147 while logistic regression alarms at cycle 130 and HistGBR alarms at cycle 140 before the fixed schedule at cycle 179.">
+            <p class="sr-summary">Held-out test Engine #24 runs to failure at cycle 147. Standardized trailing Sensor 11 climbs steeply after cycle 110. Logistic regression crosses its locked 0.99 alarm threshold at cycle 130 (17 cycles remaining), HistGradientBoosting crosses tau = 9.0 at cycle 140 (7 cycles remaining), and a fixed schedule at cycle 179 fails 32 cycles too late.</p>
+            <figcaption id="hero-fig-caption">
+              <strong>Hero trace — Held-out test Engine #24 (lifetime 147 cycles).</strong> Fixed replacement at cycle 179 misses this short-lived unit and incurs a failure penalty; trailing-sensor alarms fire at cycles 130 and 140.
+            </figcaption>
+          </figure>
+        </div>
+      </header>
+
+      <main id="main-content">
+        <!-- 1. Question -->
+        <section id="question" class="report-section">
+          <h2>Question</h2>
+          <p class="takeaway">
+            We test whether strictly causal trailing sensor telemetry up to operating cycle t warns of turbofan degradation early enough to beat a fixed-interval replacement schedule on unseen engines.
+          </p>
+
+          <table class="def-table">
+            <caption class="sr-summary">Table 1. Problem framing and prediction-time information boundaries</caption>
+            <tbody>
+              <tr>
+                <th scope="row">Research question</th>
+                <td>Can sensor history up to cycle <em>t</em> predict remaining useful life and raise a binary alarm early enough to reduce total maintenance cost below a fixed replacement cycle <em>K</em>?</td>
+              </tr>
+              <tr>
+                <th scope="row">What one row represents</th>
+                <td>One engine (<code>unit_id</code>) at the end of one operating cycle <em>t</em>, paired with features computed strictly from cycles <code>1..t</code> of that same engine.</td>
+              </tr>
+              <tr>
+                <th scope="row">Targets</th>
+                <td>(a) Continuous Remaining Useful Life (RUL), piecewise-capped at 125 cycles; (b) Binary alarm <code>A_t = 1</code> if true uncapped RUL &le; <em>w</em> cycles (primary <em>w</em> = 30; sensitivity tested at 15 and 50).</td>
+              </tr>
+              <tr>
+                <th scope="row">Prediction time</th>
+                <td>Immediately after cycle <em>t</em> completes, before deciding whether to keep the engine flying for cycle <em>t</em> + 1 or pull it for shop maintenance.</td>
+              </tr>
+              <tr>
+                <th scope="row">Available information</th>
+                <td>Cycle number <em>t</em> (age), 3 operating settings, and 21 sensor channels recorded up to and including cycle <em>t</em>; zero future cycles and zero post-cutoff maintenance logs.</td>
+              </tr>
+              <tr>
+                <th scope="row">Not claimed</th>
+                <td>Real airline fleet accuracy, physical root-cause fault causation, or operational deployment readiness.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="prose-layout">
+            <div class="prose-main">
+              <p>
+                Unplanned turbine failure in service is disproportionately expensive and hazardous compared with retiring a part slightly early. Yet engine lifetimes in NASA C-MAPSS FD001 span more than a twofold range (128 to 362 cycles), meaning any single fixed replacement interval either fails on short-lived engines or discards dozens of healthy cycles on long-lived engines.
+              </p>
+              <p>
+                Headline regression RMSE or classification accuracy alone cannot tell us whether sensor monitoring pays off operationally. A useful model must trigger an alarm within a practical planning window (<em>w</em> = 30 cycles) without crying wolf mid-life, and it must beat both an age-only timer and the best development-tuned fixed schedule across plausible failure-to-waste cost ratios.
+              </p>
+            </div>
+            <div class="prose-side">
+              <aside class="margin-note">
+                <details class="margin-note-box">
+                  <summary>Remaining useful life (RUL)</summary>
+                  <p>The number of operating cycles remaining until simulated failure: <code>T_e - t</code>, where <code>T_e</code> is engine <em>e</em>'s final recorded cycle. Capped at 125 cycles during training because early-life wear is indistinguishable from normal manufacturing scatter.</p>
+                </details>
+              </aside>
+              <aside class="margin-note">
+                <details class="margin-note-box">
+                  <summary>Lead-time horizon (w)</summary>
+                  <p>The operational warning window before failure. Setting <em>w</em> = 30 cycles reflects scheduling maintenance within 30 flights (~15.2% positive rows); we also verify <em>w</em> = 15 (7.8% positive) and <em>w</em> = 50 (25.0% positive).</p>
+                </details>
+              </aside>
+            </div>
+          </div>
+
+          <details class="section-details">
+            <summary>Details — Target formulation, cost rule, and configuration</summary>
+            <div class="details-body">
+              <p>At each cycle <em>t</em> of engine <em>e</em> with failure cycle <em>T_e</em>, the continuous target is clipped piecewise linearly and the binary alarm indicator marks the final <em>w</em> cycles:</p>
+              <div class="formula-box">RUL_uncapped(e, t) = T_e - t<br>RUL_capped(e, t)   = min(RUL_uncapped(e, t), 125)<br>Alarm(e, t)        = 1  if RUL_uncapped(e, t) &lt;= w  else 0</div>
+              <p>Under a maintenance policy that pulls engine <em>e</em> at its first alarm cycle <em>t_alarm</em>, per-engine cost equals <code>c_fail</code> if no alarm fires before failure (<em>t_alarm</em> &ge; <em>T_e</em>) and <code>c_waste * (T_e - t_alarm)</code> otherwise. Configuration parameters live in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/config.yaml" target="_blank" rel="noopener"><code>config.yaml</code></a> and target attachment in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/src/data.py" target="_blank" rel="noopener"><code>src/data.py</code></a>.</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 2. Data -->
+        <section id="data" class="report-section">
+          <h2>Data</h2>
+          <p class="takeaway">
+            NASA C-MAPSS FD001 supplies 100 run-to-failure simulated turbofan trajectories (20,631 cycles) whose wide lifespan spread causes any fixed replacement timer to either waste life or fail early.
+          </p>
+
+          <table class="def-table">
+            <caption class="sr-summary">Table 2. NASA C-MAPSS FD001 dataset overview and split sizes</caption>
+            <tbody>
+              <tr>
+                <th scope="row">Source &amp; license</th>
+                <td>NASA Prognostics Data Repository (C-MAPSS subset FD001, Saxena et al. 2008); public benchmark with no credentials required.</td>
+              </tr>
+              <tr>
+                <th scope="row">Primary trajectory table</th>
+                <td><code>train_FD001.txt</code>: 100 run-to-failure engines, <span class="num">20,631</span> rows &times; 26 columns (unit ID, cycle, 3 operating settings, 21 sensors).</td>
+              </tr>
+              <tr>
+                <th scope="row">Development vs. held-out split</th>
+                <td><span class="num">80</span> development engines (<span class="num">16,340</span> rows; lifetimes <span class="num">128–362</span> cycles, median <span class="num">199.0</span>) and <span class="num">20</span> held-out test engines (<span class="num">4,291</span> rows; lifetimes <span class="num">147–341</span> cycles, median <span class="num">198.5</span>).</td>
+              </tr>
+              <tr>
+                <th scope="row">Official truncated check set</th>
+                <td><code>test_FD001.txt</code> + <code>RUL_FD001.txt</code>: <span class="num">100</span> engines cut off prior to failure (<span class="num">13,096</span> rows), used strictly as a secondary last-cycle sanity check.</td>
+              </tr>
+              <tr>
+                <th scope="row">Access limits &amp; cleanliness</th>
+                <td>Zero missing values, single operating regime (sea level), single fault mode (high-pressure compressor wear), and zero unrecorded maintenance interventions.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- First-appearance semantic color legend -->
+          <div class="color-legend" role="note" aria-label="Semantic color legend">
+            <span><strong>Color encoding used throughout:</strong></span>
+            <span class="legend-item"><span class="swatch swatch-dev"></span> Development engines (80 units, tuning &amp; CV)</span>
+            <span class="legend-item"><span class="swatch swatch-test"></span> Held-out test engines (20 units, evaluated once)</span>
+            <span class="legend-item"><span class="swatch swatch-model"></span> Sensor model policy</span>
+            <span class="legend-item"><span class="swatch swatch-fixed"></span> Fixed-schedule baseline</span>
+            <span class="legend-item"><span class="swatch swatch-fail"></span> In-service failure / late alarm</span>
+          </div>
+
+          <figure class="report-figure span-wide" id="fig-lifetimes">
+            <div class="chart-svg-host" id="fig1-svg-host" hidden></div>
+            <img class="chart-fallback" src="figures/engine_lifetime_distribution.png" loading="lazy" alt="Histogram comparing lifetimes across the 80 development engines (128 to 362 cycles) and 20 held-out test engines (147 to 341 cycles) against the fixed schedule cutoff at 179 cycles.">
+            <figcaption>
+              <strong>Figure 1. Fleet lifetime distribution across 80 development engines (slate blue) and 20 held-out test engines (amber).</strong> Development engines live 128 to 362 cycles (median 199.0); held-out engines live 147 to 341 cycles (median 198.5). Even the development-optimal fixed cutoff (<em>K</em>* = 179 cycles, grey dashed line) misses short-lived units while throwing away up to 162 cycles on long-lived ones.
+            </figcaption>
+          </figure>
+
+          <figure class="report-figure span-wide" id="fig-aligned">
+            <div class="chart-svg-host" id="fig2-svg-host" hidden></div>
+            <div class="chart-fallback dual-fallback">
+              <img src="figures/sensor_trajectories_aligned.png" loading="lazy" alt="Sensor trajectories aligned to failure showing flat early operation followed by steady drift inside the final 125 cycles.">
+              <img src="figures/sensor_correlation_and_pca_health_index.png" loading="lazy" alt="14-sensor correlation heatmap and 1D PCA composite health index tracking remaining useful life.">
+            </div>
+            <figcaption>
+              <strong>Figure 2. Failure-aligned degradation trajectories and unsupervised 1D PCA health index on the 80 development engines.</strong> Aligning engines backward from failure (<em>t</em> &minus; <em>T_e</em>) collapses initial wear differences and reveals coherent sensor drift beginning roughly 100 to 125 cycles before failure. The first principal component (PC1) across the 14 retained sensors explains 64.1% of sensor variance and correlates with capped RUL at <em>r</em> = +0.8245.
+            </figcaption>
+          </figure>
+
+          <div class="prose-layout">
+            <div class="prose-main">
+              <h3>Data-quality findings on the 80 development engines</h3>
+              <ul class="plain-list">
+                <li><strong>Ten uninformative raw channels:</strong> All 3 operating settings reflect fixed sea-level conditions; 6 sensors (<code>sensor_1, 5, 10, 16, 18, 19</code>) have zero variance and <code>sensor_6</code> toggles only between 21.60 and 21.61 psia (<code>std = 0.0014</code>). We drop all 10 using development-fold variance checks only, retaining 14 informative sensors.</li>
+                <li><strong>Heterogeneous physical scales:</strong> Core speed (<code>sensor_9</code>) averages 9,066 rpm while bypass ratio (<code>sensor_15</code>) averages 8.44, requiring fold-isolated standardization for linear models.</li>
+                <li><strong>Cycle-to-cycle Gaussian noise:</strong> Single-cycle readings fluctuate noticeably relative to early-wear drift, motivating trailing-window smoothing.</li>
+                <li><strong>Clean benchmark idealization:</strong> Zero missing observations, dropouts, or right-censoring appear in the run-to-failure trajectories—making FD001 cleaner than any airline sensor log.</li>
+              </ul>
+            </div>
+            <div class="prose-side">
+              <aside class="margin-note">
+                <details class="margin-note-box">
+                  <summary>Failure-aligned time (t &minus; T_e)</summary>
+                  <p>Plotting sensors against cycles remaining until failure rather than cycle 1 separates engine-to-engine initial health variation from the shared physical wear curve.</p>
+                </details>
+              </aside>
+              <aside class="margin-note">
+                <details class="margin-note-box">
+                  <summary>PCA health index</summary>
+                  <p>An unsupervised 1D projection of standardized retained sensors (PC1 explains 64.1% of variance; top 3 PCs explain 82.1%) confirming a strong low-rank degradation manifold before supervised modeling.</p>
+                </details>
+              </aside>
+            </div>
+          </div>
+
+          <details class="section-details">
+            <summary>Details — Full 24-channel screening table (fitted on 80 development engines)</summary>
+            <div class="details-body">
+              <p>Generated by <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/scripts/run_eda.py" target="_blank" rel="noopener"><code>scripts/run_eda.py</code></a> and saved to <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/results/metrics/eda_sensor_screening.csv" target="_blank" rel="noopener"><code>results/metrics/eda_sensor_screening.csv</code></a>. Screening criteria: non-setting channel with <code>std &ge; 0.01</code> and <code>|corr(RUL)| &ge; 0.05</code> on development data.</p>
+              <div class="table-wrap" id="sensor-screening-table-host">
+                <p>Interactive table loads all 24 channels from <code>report_data.json</code>; see CSV link above when viewing without JavaScript.</p>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <!-- 3. Preprocessing -->
+        <section id="preprocessing" class="report-section">
+          <h2>Preprocessing</h2>
+          <p class="takeaway">
+            Every learned filter and scaler runs inside a scikit-learn Pipeline fit on training folds only, converting 14 noisy sensors into 43 strictly causal trailing-window trend features.
+          </p>
+
+          <ol class="pipeline-steps">
+            <li>
+              <strong>Screen constant channels per training fold (<code>SensorVarianceFilter</code>):</strong> Drops the 3 sea-level operating settings and any sensor with training-fold <code>std &lt; 0.01</code>, removing the 7 constant/near-constant channels without peeking at validation or test engines.
+            </li>
+            <li>
+              <strong>Group by <code>unit_id</code> and enforce trailing windows (<code>TrailingWindowFeatureTransformer</code>):</strong> Computes features for row (<em>e, t</em>) exclusively over that engine's cycles <code>[max(1, t - k + 1), t]</code> with primary window <em>k</em> = 30 cycles, preventing future look-ahead or cross-engine bleed.
+            </li>
+            <li>
+              <strong>Extract smoothed level, drift slope, and instability:</strong> For each of the 14 retained sensors, computes rolling mean (noise suppression), rolling standard deviation (volatility), and OLS linear drift slope (wear rate), then appends current cycle age <code>t</code> to form 43 features.
+            </li>
+            <li>
+              <strong>Stabilize early cycles (<em>t</em> &lt; 30):</strong> Uses expanding causal windows over cycles <code>1..t</code> at the start of an engine's life while dividing slope numerators by the full 30-cycle denominator so early noise does not explode slope estimates.
+            </li>
+            <li>
+              <strong>Standardize inside linear folds (<code>DataFrameStandardScaler</code>) &amp; cap RUL at 125:</strong> Applies zero-mean unit-variance scaling strictly inside training folds for regularized linear models, and caps training RUL targets at 125 cycles because early operation shows no measurable degradation trend.
+            </li>
+          </ol>
+
+          <figure class="report-figure span-wide" id="fig-features">
+            <div class="chart-svg-host" id="fig3-svg-host" hidden></div>
+            <img class="chart-fallback" src="figures/trailing_window_features.png" loading="lazy" alt="Raw Sensor 11 readings versus trailing 30-cycle mean and trailing OLS drift slope across an engine lifetime.">
+            <figcaption>
+              <strong>Figure 3. Causal trailing-window denoising and drift slope on Sensor 11 (HPC static pressure, development Engine #1, 192 cycles).</strong> Averaging across the trailing 30 cycles reduces cycle-to-cycle noise (raising mean |<em>r</em>| with capped RUL from 0.657 to 0.687 across the 14 sensors), while the trailing OLS slope turns sharply positive during late wear.
+            </figcaption>
+          </figure>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Trailing vs. centered windows</summary>
+              <p>A centered rolling window uses cycles <code>t + 1 .. t + 15</code> that have not occurred yet at prediction time. Strictly trailing windows ensure zero temporal leakage.</p>
+            </details>
+          </aside>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>How mild is scaler leakage?</summary>
+              <p>In a controlled check (<a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/results/metrics/sensitivity_summary.csv" target="_blank" rel="noopener"><code>sensitivity_summary.csv</code></a>), fitting StandardScaler on all 80 dev engines vs. fold-isolated folds changed Ridge CV RMSE from <code>15.298</code> to <code>15.301</code>—negligible here, unlike row-splitting leakage, yet still prevented by Pipeline discipline.</p>
+            </details>
+          </aside>
+
+          <details class="section-details">
+            <summary>Details — OLS slope formula, boundary rule, and causality unit tests</summary>
+            <div class="details-body">
+              <p>For a trailing slice of length <em>m</em> = min(<em>t</em>, <em>k</em>) with index <em>x</em> = [0, 1, ..., <em>m</em> &minus; 1], weights are variance-stabilized by the full-window denominator:</p>
+              <div class="formula-box">denom_full = k * (k^2 - 1) / 12   (for k = 30, denom_full = 2247.5)<br>slope(e, t) = sum((x_i - mean(x)) * s_i) / denom_full   (for t = 1: mean = s_1, std = 0, slope = 0)</div>
+              <p>Automated checks in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/scripts/run_features.py" target="_blank" rel="noopener"><code>scripts/run_features.py</code></a> (saved in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/data/processed/feature_metadata.json" target="_blank" rel="noopener"><code>feature_metadata.json</code></a>) pass three assertions: perturbing future cycles <code>&gt; t</code> leaves features at <code>&le; t</code> unchanged, concatenating engines produces identical per-engine matrices, and permuting row order leaves outputs invariant.</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 4. Baseline and methods -->
+        <section id="baseline-and-methods" class="report-section">
+          <h2>Baseline and methods</h2>
+          <p class="takeaway">
+            We climb a six-rung complexity ladder from a non-sensor fixed timer and age-only models up to regularized linear trends and nonlinear tree ensembles, testing whether added complexity earns its keep.
+          </p>
+
+          <div class="table-wrap span-wide">
+            <div class="table-caption"><strong>Table 3.</strong> Six-rung model comparison ordered from simplest baseline to nonlinear tree ensembles.</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rung</th>
+                  <th>Model</th>
+                  <th class="num">Features</th>
+                  <th>Core assumption</th>
+                  <th>Why included in ladder</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-baseline">
+                  <td>Rung 0</td>
+                  <td>Mean RUL / Never-Alarm Floor</td>
+                  <td class="num">0</td>
+                  <td>All units share the training-set mean RUL or zero-alarm base rate.</td>
+                  <td>Establishes the zero-learning floor against which every model must improve.</td>
+                </tr>
+                <tr class="row-baseline">
+                  <td>Rung 1</td>
+                  <td>Fixed Replacement Schedule (<em>K</em>*)</td>
+                  <td class="num">1 (timer)</td>
+                  <td>Engine failure risk depends only on a single fleet-wide cycle age cutoff.</td>
+                  <td>Operational maintenance baseline representing practice without onboard telemetry.</td>
+                </tr>
+                <tr>
+                  <td>Rung 2</td>
+                  <td>Age-Only Ridge &amp; Logistic Regression</td>
+                  <td class="num">1 (cycle)</td>
+                  <td>Remaining life decreases linearly (or alarm log-odds grow monotonically) with cycle age.</td>
+                  <td>Isolates how much predictive power comes from calendar age alone before adding sensors.</td>
+                </tr>
+                <tr>
+                  <td>Rung 3</td>
+                  <td>Instantaneous Sensors + Ridge / Lasso / Logistic</td>
+                  <td class="num">15</td>
+                  <td>Current-cycle sensor snapshots plus age linearly explain degradation state.</td>
+                  <td>Tests whether raw instantaneous readings beat age without temporal smoothing.</td>
+                </tr>
+                <tr>
+                  <td>Rung 4</td>
+                  <td>Trailing Trends (<em>k</em>=30) + Ridge / Lasso / L2 Logistic</td>
+                  <td class="num">43</td>
+                  <td>Linear combinations of smoothed levels, drift slopes, and volatility track wear and well-calibrated log-odds.</td>
+                  <td>L2 handles collinear sensors; L1 Lasso enforces sparsity; Logistic yields calibrated alarm probabilities.</td>
+                </tr>
+                <tr>
+                  <td>Rung 5</td>
+                  <td>Trailing Trends (<em>k</em>=30) + Random Forest &amp; HistGradientBoosting</td>
+                  <td class="num">43</td>
+                  <td>Piecewise axis-aligned splits capture nonlinear thresholds and sensor interactions inside the training range.</td>
+                  <td>Tests whether nonlinear interactions outperform linear trend combinations for RUL and alarm policy.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            Moving up the ladder tests a specific hypothesis at each step rather than jumping straight to complex models. Comparing Rung 3 to Rung 4 quantifies the value of 30-cycle trailing trends over raw snapshots, while comparing Rung 4 to Rung 5 measures whether nonlinear tree interactions justify losing linear interpretability.
+          </p>
+          <p>
+            Feature inspection on development folds shows strong physical agreement across model families: Lasso keeps 23 of the 43 features, while Logistic Regression and HistGradientBoosting both rely heavily on cycle age (<code>cycle</code>), trailing HPC outlet temperature level (<code>sensor_3_mean_k30</code>), trailing HPC static pressure drift (<code>sensor_11_slope_k30</code>), and trailing fuel-flow ratio drift (<code>sensor_12_slope_k30</code>).
+          </p>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Collinearity: L2 vs. L1</summary>
+              <p>Because turbofan pressures, temperatures, and rotor speeds move together, unregularized OLS weights oscillate wildly. Ridge (L2) shrinks correlated groups stably; Lasso (L1) zeroes redundant channels.</p>
+            </details>
+          </aside>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Tree extrapolation limits</summary>
+              <p>Decision trees predict bounded averages of training leaves and cannot extrapolate past observed feature ranges, whereas linear models extrapolate smoothly when sensors drift beyond prior extremes.</p>
+            </details>
+          </aside>
+
+          <details class="section-details">
+            <summary>Details — Hyperparameters and top feature attributions</summary>
+            <div class="details-body">
+              <p>Exact estimator configurations from <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/src/models.py" target="_blank" rel="noopener"><code>src/models.py</code></a>: Ridge (<code>alpha=200.0</code> for Rung 4, <code>100.0</code> for Rung 3, <code>1.0</code> for Rung 2), Lasso (<code>alpha=0.5</code>), L2 Logistic Regression (<code>C=0.05</code> for Rung 4, <code>0.1</code> for Rung 3, <code>1.0</code> for Rung 2), Random Forest Regressor (<code>n_estimators=200, max_depth=10, min_samples_leaf=12</code>), HistGradientBoosting Regressor (<code>max_iter=150, lr=0.05, max_depth=5, min_samples_leaf=30, l2=2.0</code>), and HistGradientBoosting Classifier (<code>max_iter=120, lr=0.05, max_depth=4, min_samples_leaf=30, l2=2.0</code>).</p>
+              <div class="table-wrap" id="feature-attribution-table-host">
+                <p>Feature attribution table populates from <code>report_data.json</code>; full CSV at <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/results/metrics/cv_feature_attribution.csv" target="_blank" rel="noopener"><code>results/metrics/cv_feature_attribution.csv</code></a>.</p>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <!-- 5. Evaluation -->
+        <section id="evaluation" class="report-section">
+          <h2>Evaluation</h2>
+          <p class="takeaway">
+            We partition engines—not rows—into 80 development engines (5-fold GroupKFold) and 20 sealed test engines, locking every threshold on development data before running one final evaluation with engine-level bootstrap intervals.
+          </p>
+
+          <figure class="report-figure span-wide" id="fig-split">
+            <div class="chart-svg-host" id="fig4-svg-host" hidden></div>
+            <img class="chart-fallback" src="figures/split_architecture.png" loading="lazy" alt="Diagram showing 100 training engines split deterministically with seed 42 into 80 development engines (5-fold GroupKFold) and 20 sealed held-out test engines, plus the 100 official truncated test engines as a secondary check.">
+            <figcaption>
+              <strong>Figure 4. Leakage-proof engine-level split architecture fixed before modeling (seed = 42).</strong> Grouping by <code>unit_id</code> keeps every cycle of an engine inside a single fold so models never memorize neighboring cycles of test engines. Decision parameters (<em>K</em>*<sub>dev</sub> = 179, <em>p</em>*<sub>dev</sub> = 0.99, &tau;*<sub>dev</sub> = 9.0) are tuned solely on development out-of-fold predictions and evaluated once on the 20 held-out engines.
+            </figcaption>
+          </figure>
+
+          <div class="table-wrap span-wide">
+            <div class="table-caption"><strong>Table 4.</strong> Evaluation metrics and why each matches the predictive maintenance problem.</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Task</th>
+                  <th>Metric</th>
+                  <th>One-line justification</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>RUL regression</td>
+                  <td>RMSE &amp; MAE (cycles)</td>
+                  <td>Measures average cycle prediction error across the full trajectory and within the critical RUL &le; 50 zone.</td>
+                </tr>
+                <tr>
+                  <td>RUL regression</td>
+                  <td>NASA Asymmetric Score</td>
+                  <td>Penalizes dangerous late over-predictions (<code>exp(+d/10) &minus; 1</code>) much more steeply than early conservative warnings (<code>exp(&minus;d/13) &minus; 1</code>).</td>
+                </tr>
+                <tr>
+                  <td>Binary alarm (<em>w</em>=30)</td>
+                  <td>PR-AUC &amp; Brier Score</td>
+                  <td>Evaluates rare-event ranking under 15.2% class imbalance without relying on misleading raw accuracy, plus probability calibration.</td>
+                </tr>
+                <tr>
+                  <td>Maintenance policy</td>
+                  <td>Mean Cost per Engine</td>
+                  <td>Translates first-alarm triggers into operational cost: <code>c_fail</code> if failure occurs before alarm, else <code>c_waste &times; remaining_cycles</code>.</td>
+                </tr>
+                <tr>
+                  <td>Uncertainty</td>
+                  <td>1,000-Engine Bootstrap CI</td>
+                  <td>Resamples whole engines (not rows) across the 20 held-out units to reflect fleet-level sample variability.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Why GroupKFold by engine?</summary>
+              <p>Consecutive cycles of one engine share nearly identical trailing windows. Standard random KFold splits neighboring cycles across train and validation, leaking test trajectories.</p>
+            </details>
+          </aside>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Why lock thresholds on dev?</summary>
+              <p>Optimizing thresholds on the 20 held-out engines would overfit to small-sample noise. We lock <em>K</em>*<sub>dev</sub>, <em>p</em>*<sub>dev</sub>, and &tau;*<sub>dev</sub> on 80 dev engines and report test hindsight separately only as an unachievable reference.</p>
+            </details>
+          </aside>
+
+          <details class="section-details">
+            <summary>Details — Metric formulas and saved split manifests</summary>
+            <div class="details-body">
+              <p>For residual <code>d_i = pred_i - true_i</code>, the NASA C-MAPSS asymmetric score evaluates:</p>
+              <div class="formula-box">s_i = exp(-d_i / 13) - 1   if d_i &lt; 0  (early / conservative warning)<br>s_i = exp(+d_i / 10) - 1   if d_i &gt;= 0 (late / dangerous over-prediction)</div>
+              <p>Held-out test engine IDs (<code>seed=42</code>): <code>[2, 3, 15, 21, 22, 24, 30, 38, 52, 53, 61, 64, 72, 75, 83, 85, 87, 88, 92, 93]</code>. Full manifests live in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/data/splits/dev_engines.json" target="_blank" rel="noopener"><code>dev_engines.json</code></a> and <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/data/splits/test_engines.json" target="_blank" rel="noopener"><code>test_engines.json</code></a>.</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 6. Results -->
+        <section id="results" class="report-section">
+          <h2>Results</h2>
+          <p class="takeaway">
+            Trailing 30-cycle sensor models cut held-out test RMSE from 41.56 to 11.73 cycles and lower 100:1 maintenance cost by 68.8% to 76.2% compared with the 179-cycle fixed schedule, beating fixed timing down to a 10:1 cost ratio.
+          </p>
+
+          <!-- Headline Comparison Tables First -->
+          <div class="table-wrap span-wide">
+            <div class="table-caption">
+              <strong>Table 5.</strong> Continuous RUL regression ladder on 5-fold development CV (<span class="dataset-pill dataset-pill--dev">80 Dev</span>) and 20 held-out test engines (<span class="dataset-pill dataset-pill--test">20 Held-out</span>, evaluated once with locked &tau;*<sub>dev</sub> at 100:1).
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rung &amp; Model</th>
+                  <th class="num">Dev CV RMSE</th>
+                  <th class="num">Test RMSE (95% CI)</th>
+                  <th class="num">Test MAE</th>
+                  <th class="num">Test NASA Asym</th>
+                  <th class="num">Locked &tau;*<sub>dev</sub></th>
+                  <th class="num">Test Cost (c=100)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-baseline">
+                  <td>Rung 0 · Mean RUL Floor</td>
+                  <td class="num">41.705</td>
+                  <td class="num">41.559</td>
+                  <td class="num">37.084</td>
+                  <td class="num">286.247</td>
+                  <td class="num">8.0</td>
+                  <td class="num">100.00</td>
+                </tr>
+                <tr>
+                  <td>Rung 2 · Age-Only Ridge</td>
+                  <td class="num">27.401</td>
+                  <td class="num">28.267</td>
+                  <td class="num">21.079</td>
+                  <td class="num">29.263</td>
+                  <td class="num">49.0</td>
+                  <td class="num">59.95</td>
+                </tr>
+                <tr>
+                  <td>Rung 3 · Instant Sensors + Ridge</td>
+                  <td class="num">19.546</td>
+                  <td class="num">19.433</td>
+                  <td class="num">14.715</td>
+                  <td class="num">7.267</td>
+                  <td class="num">24.5</td>
+                  <td class="num">17.45</td>
+                </tr>
+                <tr>
+                  <td>Rung 3 · Instant Sensors + Lasso</td>
+                  <td class="num">19.661</td>
+                  <td class="num">19.541</td>
+                  <td class="num">14.872</td>
+                  <td class="num">7.323</td>
+                  <td class="num">25.5</td>
+                  <td class="num">17.70</td>
+                </tr>
+                <tr>
+                  <td>Rung 4 · Trailing Trends + Ridge</td>
+                  <td class="num">15.298</td>
+                  <td class="num">14.790 [13.14, 16.37]</td>
+                  <td class="num">11.383</td>
+                  <td class="num">3.105</td>
+                  <td class="num">12.0</td>
+                  <td class="num">17.85</td>
+                </tr>
+                <tr>
+                  <td>Rung 4 · Trailing Trends + Lasso</td>
+                  <td class="num">15.429</td>
+                  <td class="num">14.892</td>
+                  <td class="num">11.496</td>
+                  <td class="num">3.149</td>
+                  <td class="num">12.5</td>
+                  <td class="num">17.35</td>
+                </tr>
+                <tr>
+                  <td>Rung 5 · Trailing Trends + Random Forest</td>
+                  <td class="num">12.430</td>
+                  <td class="num">11.933</td>
+                  <td class="num">8.683</td>
+                  <td class="num">2.349</td>
+                  <td class="num">8.0</td>
+                  <td class="num">6.80</td>
+                </tr>
+                <tr class="row-highlight">
+                  <td><strong>Rung 5 · Trailing Trends + HistGBR</strong></td>
+                  <td class="num"><strong>12.221</strong></td>
+                  <td class="num"><strong>11.733 [10.34, 12.99]</strong></td>
+                  <td class="num"><strong>7.958</strong></td>
+                  <td class="num"><strong>2.293 [1.74, 2.89]</strong></td>
+                  <td class="num"><strong>9.0</strong></td>
+                  <td class="num"><strong>13.90 [8.65, 23.60]</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-wrap span-wide">
+            <div class="table-caption">
+              <strong>Table 6.</strong> Binary alarm (<em>w</em> = 30) and maintenance policy cost at <em>c</em><sub>fail</sub> : <em>c</em><sub>waste</sub> = 100 : 1 across development CV and 20 held-out test engines.
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Rung &amp; Policy</th>
+                  <th class="num">Dev PR-AUC</th>
+                  <th class="num">Test PR-AUC (95% CI)</th>
+                  <th class="num">Test Brier</th>
+                  <th class="num">Locked Param</th>
+                  <th class="num">Test Failures</th>
+                  <th class="num">Wasted Cyc</th>
+                  <th class="num">Test Cost (95% CI)</th>
+                  <th class="num">Savings vs. Fixed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-baseline">
+                  <td>Rung 0 · Never Alarm Floor</td>
+                  <td class="num">0.1516</td>
+                  <td class="num">0.1445</td>
+                  <td class="num">0.1237</td>
+                  <td class="num"><em>p</em> = 1.00</td>
+                  <td class="num">20 / 20 (100%)</td>
+                  <td class="num">0.00</td>
+                  <td class="num">100.00</td>
+                  <td class="num">&minus;41.60</td>
+                </tr>
+                <tr class="row-baseline">
+                  <td><strong>Rung 1 · Fixed Schedule Baseline</strong></td>
+                  <td class="num">&mdash;</td>
+                  <td class="num">&mdash;</td>
+                  <td class="num">&mdash;</td>
+                  <td class="num"><strong><em>K</em>* = 179</strong></td>
+                  <td class="num"><strong>4 / 20 (20%)</strong></td>
+                  <td class="num"><strong>38.40</strong></td>
+                  <td class="num"><strong>58.40 [39.20, 79.55]</strong></td>
+                  <td class="num"><strong>0.00 (ref)</strong></td>
+                </tr>
+                <tr>
+                  <td>Rung 2 · Age-Only Logistic</td>
+                  <td class="num">0.5123</td>
+                  <td class="num">0.5083</td>
+                  <td class="num">0.0970</td>
+                  <td class="num"><em>p</em>* = 0.19</td>
+                  <td class="num">1 / 20 (5%)</td>
+                  <td class="num">62.80</td>
+                  <td class="num">67.80</td>
+                  <td class="num">&minus;9.40</td>
+                </tr>
+                <tr>
+                  <td>Rung 3 · Instant Logistic</td>
+                  <td class="num">0.9522</td>
+                  <td class="num">0.9466</td>
+                  <td class="num">0.0293</td>
+                  <td class="num"><em>p</em>* = 0.99</td>
+                  <td class="num">0 / 20 (0%)</td>
+                  <td class="num">11.65</td>
+                  <td class="num">11.65</td>
+                  <td class="num">+46.75</td>
+                </tr>
+                <tr class="row-highlight">
+                  <td><strong>Rung 4 · Trailing Trends Logistic (L2)</strong></td>
+                  <td class="num"><strong>0.9863</strong></td>
+                  <td class="num"><strong>0.9888 [0.980, 0.995]</strong></td>
+                  <td class="num"><strong>0.0129</strong></td>
+                  <td class="num"><strong><em>p</em>* = 0.99</strong></td>
+                  <td class="num"><strong>0 / 20 (0%)</strong></td>
+                  <td class="num"><strong>18.20</strong></td>
+                  <td class="num"><strong>18.20 [17.10, 19.35]</strong></td>
+                  <td class="num"><strong>+40.20 [21.00, 61.50]</strong></td>
+                </tr>
+                <tr>
+                  <td>Rung 5 · Trailing Trends RF Classifier</td>
+                  <td class="num">0.9777</td>
+                  <td class="num">0.9835</td>
+                  <td class="num">0.0177</td>
+                  <td class="num"><em>p</em>* = 0.97</td>
+                  <td class="num">0 / 20 (0%)</td>
+                  <td class="num">12.35</td>
+                  <td class="num">12.35</td>
+                  <td class="num">+46.05</td>
+                </tr>
+                <tr>
+                  <td>Rung 5 · Trailing Trends HistGB Classifier</td>
+                  <td class="num">0.9779</td>
+                  <td class="num">0.9827 [0.976, 0.989]</td>
+                  <td class="num">0.0161</td>
+                  <td class="num"><em>p</em>* = 0.99</td>
+                  <td class="num">1 / 20 (5%)</td>
+                  <td class="num">11.45</td>
+                  <td class="num">16.45 [11.15, 26.05]</td>
+                  <td class="num">+41.95 [25.60, 58.31]</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- MAIN INTERACTIVE EXPLORER (Focal Point of Results) -->
+          <div id="explorer-widget" class="widget-panel widget-panel--focal span-wide">
+            <div class="widget-header">
+              <h3 class="widget-question">How do failure cost ratios and alarm thresholds change maintenance cost compared with a fixed schedule?</h3>
+              <div class="widget-badges">
+                <span class="dataset-pill dataset-pill--test">Held-out test: 20 engines</span>
+                <span class="dataset-pill dataset-pill--dev">Dev CV reference: 80 engines</span>
+              </div>
+            </div>
+
+            <div class="widget-controls">
+              <div class="control-group">
+                <label for="exp-model-select">Policy model</label>
+                <select id="exp-model-select">
+                  <option value="rung4_trends_logreg">Trailing Trends + Logistic Regression (Rung 4)</option>
+                  <option value="rung5_trends_hgb">Trailing Trends + HistGB Regressor (Rung 5)</option>
+                  <option value="rung5_trends_hgb_clf">Trailing Trends + HistGB Classifier (Rung 5)</option>
+                  <option value="rung2_age_logreg">Age-Only Logistic Regression (Rung 2)</option>
+                </select>
+              </div>
+
+              <div class="control-group control-group--wide">
+                <label for="exp-ratio-slider">
+                  <span>Failure-to-waste ratio (<em>c</em><sub>fail</sub> : <em>c</em><sub>waste</sub>)</span>
+                  <span class="control-value" id="exp-ratio-val">100 : 1</span>
+                </label>
+                <input id="exp-ratio-slider" type="range" min="10" max="300" step="5" value="100">
+              </div>
+
+              <div class="control-group control-group--wide">
+                <label for="exp-thresh-slider">
+                  <span id="exp-thresh-label">Alarm threshold (<em>p</em>)</span>
+                  <span class="control-value" id="exp-thresh-val">0.99</span>
+                </label>
+                <input id="exp-thresh-slider" type="range" min="0" max="94" step="1" value="93">
+              </div>
+
+              <button type="button" class="btn" id="exp-lock-dev-btn">Use dev-locked threshold</button>
+              <button type="button" class="btn btn-reset" id="exp-reset-btn">Reset defaults</button>
+            </div>
+
+            <p class="live-takeaway" id="exp-live-takeaway" aria-live="polite">
+              Loading interactive cost explorer from <code>data/report_data.json</code>...
+            </p>
+
+            <div class="readout-strip" id="exp-readout-strip">
+              <div class="readout-item">
+                <span class="readout-label">Model policy cost (test)</span>
+                <span class="readout-val readout-val--model" id="ro-model-cost">18.20</span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Fixed schedule cost (test)</span>
+                <span class="readout-val readout-val--fixed" id="ro-fixed-cost">58.40</span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Savings vs. fixed</span>
+                <span class="readout-val readout-val--model" id="ro-savings">+40.20 (68.8%)</span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Test failures</span>
+                <span class="readout-val readout-val--fail" id="ro-failures">0 / 20 (0%)</span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Mean wasted life</span>
+                <span class="readout-val" id="ro-wasted">18.20 cyc</span>
+              </div>
+              <div class="readout-item">
+                <span class="readout-label">Break-even ratio (test)</span>
+                <span class="readout-val readout-val--test" id="ro-breakeven">10.0 : 1</span>
+              </div>
+            </div>
+
+            <figure class="report-figure" style="margin:0; border:none; padding:0;">
+              <div class="chart-svg-host" id="fig5-svg-host" hidden>
+                <div class="explorer-charts-grid">
+                  <div class="chart-subpanel">
+                    <h4>A. Policy cost across failure-to-waste ratios</h4>
+                    <div id="fig5a-host"></div>
+                  </div>
+                  <div class="chart-subpanel">
+                    <h4>B. Threshold curve (dev vs. test) &amp; 20-engine outcomes</h4>
+                    <div id="fig5b-host"></div>
+                  </div>
+                </div>
+              </div>
+              <img class="chart-fallback" src="figures/cost_curve_vs_fixed_schedule.png" loading="lazy" alt="Cost curve across failure-to-waste ratios comparing the fixed replacement schedule against sensor-based alarm models and 1,000-engine bootstrap savings.">
+              <figcaption>
+                <strong>Figure 5. Interactive maintenance cost explorer on the 20 held-out test engines (amber) and 80 development engines (slate blue).</strong> Left: cost per engine across failure-to-waste ratios using development-locked thresholds. Right: threshold sensitivity comparing development CV against held-out test (any test-minimum marker is shown strictly as an unachievable hindsight reference) and the resulting alarm timing for every test engine.
+              </figcaption>
+            </figure>
+          </div>
+
+          <p>
+            Two structural results emerge clearly from the held-out test simulation. First, <strong>age alone fails as a maintenance policy</strong>: at a 100:1 cost ratio, Rung 2 age-only logistic regression costs 67.80 per engine—worse than the fixed schedule (58.40)—because it triggers premature alarms on 80% of engines. Second, <strong>adding trailing trends yields zero-failure or near-zero-failure reliability</strong>: calibrated Rung 4 logistic regression achieves 0 failures and 18.20 mean cost (95% bootstrap CI [17.10, 19.35]), while Rung 5 HistGradientBoosting lowers average cost further to 13.90 (95% CI [8.65, 23.60]) at the price of missing one extreme 341-cycle engine (Engine #92).
+          </p>
+
+          <!-- QUIETER LEAKAGE COMPARISON WIDGET -->
+          <div id="leakage-widget" class="widget-panel span-wide">
+            <div class="widget-header">
+              <h3 class="widget-question">How much does a random row split inflate accuracy compared with an engine-level split?</h3>
+              <div class="widget-badges">
+                <span class="dataset-pill dataset-pill--test">Held-out / Row-split comparison</span>
+              </div>
+            </div>
+
+            <div class="widget-controls">
+              <div class="control-group">
+                <label>Evaluation split</label>
+                <div class="segmented-group" role="group" aria-label="Evaluation split mode">
+                  <button type="button" id="leak-btn-proper" aria-pressed="true">Proper engine split</button>
+                  <button type="button" id="leak-btn-leaky" aria-pressed="false">Flawed random row split</button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label for="leak-model-select">Trailing-trend model</label>
+                <select id="leak-model-select">
+                  <option value="rung5_trends_hgb">HistGradientBoosting (depth=5)</option>
+                  <option value="rung5_trends_rf">Random Forest (depth=10)</option>
+                  <option value="rung4_trends_ridge">Ridge Linear (k=30)</option>
+                </select>
+              </div>
+
+              <button type="button" class="btn btn-reset" id="leak-reset-btn">Reset</button>
+            </div>
+
+            <p class="live-takeaway" id="leak-live-takeaway" aria-live="polite">
+              Proper engine split keeps every cycle of test engines unseen (HistGBR RMSE = 11.733 cycles vs. 8.534 under a leaky random row split).
+            </p>
+
+            <figure class="report-figure" style="margin:0; border:none; padding:0;">
+              <div class="chart-svg-host" id="fig6-svg-host" hidden></div>
+              <img class="chart-fallback" src="figures/leakage_comparison_scatter.png" loading="lazy" alt="Predicted versus true RUL and Engine #21 trajectory demonstrating artificial error reduction under a random row split.">
+              <figcaption>
+                <strong>Figure 6. Engine-level split versus random row split leakage experiment.</strong> When cycles are split randomly by row, ~80% of an unseen engine's neighboring cycles sit in the training set (shown on held-out Engine #21). Flexible trees memorize those adjacent windows, artificially cutting test RMSE by 27.3% on HistGradientBoosting and 19.5% on Random Forest while linear Ridge shifts by only 1.1%.
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="table-wrap span-wide">
+            <div class="table-caption"><strong>Table 7.</strong> Quantified optimistic error inflation when splitting rows randomly instead of grouping by engine.</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Trailing-trend model (<em>k</em>=30)</th>
+                  <th class="num">Proper GroupKFold CV RMSE</th>
+                  <th class="num">Leaky Random KFold RMSE</th>
+                  <th class="num">Proper Test RMSE</th>
+                  <th class="num">Leaky Row-Split RMSE</th>
+                  <th class="num">Artificial RMSE Drop</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ridge Linear (<em>k</em>=30)</td>
+                  <td class="num">15.298</td>
+                  <td class="num">14.767</td>
+                  <td class="num">14.790</td>
+                  <td class="num">14.630</td>
+                  <td class="num">0.161 cyc (1.09%)</td>
+                </tr>
+                <tr>
+                  <td>Random Forest (depth=10)</td>
+                  <td class="num">12.430</td>
+                  <td class="num">9.480</td>
+                  <td class="num">11.933</td>
+                  <td class="num">9.603</td>
+                  <td class="num">2.330 cyc (19.53%)</td>
+                </tr>
+                <tr>
+                  <td>HistGradientBoosting (depth=5)</td>
+                  <td class="num">12.221</td>
+                  <td class="num">8.350</td>
+                  <td class="num">11.733</td>
+                  <td class="num">8.534</td>
+                  <td class="num">3.200 cyc (27.27%)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <figure class="report-figure span-wide" id="fig-ladder">
+            <div class="chart-svg-host" id="fig7-svg-host" hidden></div>
+            <img class="chart-fallback" src="figures/cv_baseline_ladder_progression.png" loading="lazy" alt="RUL RMSE and maintenance policy cost progression across Rungs 0 through 5.">
+            <figcaption>
+              <strong>Figure 7. Error and policy cost progression across Rungs 0 to 5 on 5-fold development CV (slate blue) and 20 held-out test engines (amber).</strong> Adding instantaneous sensors (Rung 3) and 30-cycle trailing trends (Rung 4) yields the largest improvements; nonlinear trees (Rung 5) provide a smaller incremental gain in RUL RMSE.
+            </figcaption>
+          </figure>
+
+          <figure class="report-figure span-wide" id="fig-pr-cal">
+            <div class="chart-svg-host" id="fig8-svg-host" hidden></div>
+            <img class="chart-fallback" src="figures/cv_pr_and_calibration_curves.png" loading="lazy" alt="Precision-Recall and calibration reliability curves across Rung 2, Rung 3, Rung 4, and Rung 5 alarm classifiers.">
+            <figcaption>
+              <strong>Figure 8. Precision-Recall and reliability calibration curves on 5-fold development CV (<em>w</em> = 30, 15.2% positive rate).</strong> Trailing-trend L2 logistic regression achieves 0.9863 CV PR-AUC (0.9888 on held-out test) and stays closest to the diagonal calibration line, making its probability thresholds reliably transferable from dev to test.
+            </figcaption>
+          </figure>
+
+          <details class="section-details">
+            <summary>Details — Official 100-engine FD001 sanity check and sensitivity sweeps (<em>w</em>, RUL cap, <em>k</em>)</summary>
+            <div class="details-body">
+              <p>On the 100 official truncated <code>test_FD001.txt</code> engines (evaluating the last observed cycle against <code>RUL_FD001.txt</code>), our trailing-trend models confirm clean generalization without tuning to that set: Random Forest achieves <strong>12.436 RMSE</strong> (NASA sum 233.32) and HistGradientBoosting achieves <strong>12.570 RMSE</strong> (NASA sum 243.69; all 13,096 cycles RMSE = 11.779), down from 41.830 (Mean floor) and 32.173 (Age-only).</p>
+              <div class="table-wrap" id="sensitivity-table-host">
+                <p>Sensitivity results across <em>w</em> &isin; {15, 30, 50}, RUL cap &isin; {125, 150, Uncapped}, and window <em>k</em> &isin; {10, 30} load from <code>report_data.json</code>; full CSV at <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/results/metrics/sensitivity_summary.csv" target="_blank" rel="noopener"><code>sensitivity_summary.csv</code></a>.</p>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <!-- 7. Errors -->
+        <section id="errors" class="report-section">
+          <h2>Errors</h2>
+          <p class="takeaway">
+            Prediction errors concentrate in mid-wear transitions (RMSE 18.44 cycles at RUL 61–90) rather than near failure (RMSE 3.40 at RUL 0–15), while extreme-lifetime engines expose threshold brittleness.
+          </p>
+
+          <!-- QUIETER CASE-FILE BROWSER WIDGET -->
+          <div id="error-browser-widget" class="widget-panel span-wide">
+            <div class="widget-header">
+              <h3 class="widget-question">Which engines cause the largest prediction errors or policy failures, and why?</h3>
+              <div class="widget-badges">
+                <span class="dataset-pill dataset-pill--test">Held-out test: 20 engines</span>
+              </div>
+            </div>
+
+            <div class="widget-controls">
+              <div class="control-group control-group--wide">
+                <label>Representative case studies</label>
+                <div class="segmented-group" role="group" aria-label="Representative error case files">
+                  <button type="button" class="case-btn" data-case="shortest_lived" aria-pressed="true">Case 1: Engine #24 (147c, shortest)</button>
+                  <button type="button" class="case-btn" data-case="longest_lived" aria-pressed="false">Case 2: Engine #92 (341c, longest)</button>
+                  <button type="button" class="case-btn" data-case="worst_asymmetric_error" aria-pressed="false">Case 3: Engine #61 (185c, worst asym)</button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label for="err-engine-select">Inspect any test engine</label>
+                <select id="err-engine-select">
+                  <option value="24">Engine #24 (147 cyc)</option>
+                  <option value="92">Engine #92 (341 cyc)</option>
+                  <option value="61">Engine #61 (185 cyc)</option>
+                </select>
+              </div>
+
+              <button type="button" class="btn btn-reset" id="err-reset-btn">Reset</button>
+            </div>
+
+            <p class="live-takeaway" id="err-live-takeaway" aria-live="polite">
+              Engine #24 fails at cycle 147—32 cycles before the fixed schedule at 179—while sensor alarms intervene safely at cycles 130 (Logistic) and 140 (HistGBR).
+            </p>
+
+            <div class="case-file-card" id="err-case-card">
+              <div>
+                <span class="case-field-title">The case</span>
+                <p class="case-field-body" id="case-desc">Held-out Engine #24 fails early at 147 cycles (shortest in test fleet). Fixed K*=179 misses it completely (cost 100).</p>
+              </div>
+              <div>
+                <span class="case-field-title">What went wrong</span>
+                <p class="case-field-body" id="case-wrong">HistGBR over-predicts RUL by up to +40.08 cycles during early wear before converging inside the last 30 cycles (last-30 mean error +1.30 cyc).</p>
+              </div>
+              <div>
+                <span class="case-field-title">Likely reason &amp; link</span>
+                <p class="case-field-body" id="case-reason">Rapid late HPC wear accelerates steeply after cycle 110. <a href="#explorer-widget" id="case-jump-link" data-model="rung4_trends_logreg">Compare policies in explorer</a>.</p>
+              </div>
+            </div>
+
+            <figure class="report-figure" style="margin:0; border:none; padding:0;">
+              <div class="chart-svg-host" id="fig9-svg-host" hidden></div>
+              <img class="chart-fallback" src="figures/error_case_studies.png" loading="lazy" alt="True RUL versus HistGBR and Ridge predictions across the three representative error case engines (#24, #92, and #61).">
+              <figcaption>
+                <strong>Figure 9. Trajectory audit for representative held-out test engines.</strong> Case 2 (Engine #92, 341 cycles) illustrates the lone failure of locked HistGBR (&tau; = 9.0): because trees bound predictions conservatively around prior long-life scatter and cycle 341 lies near the training age extreme, HistGBR stops just above 9.0 while calibrated Logistic Regression triggers cleanly at cycle 323.
+              </figcaption>
+            </figure>
+          </div>
+
+          <div class="table-wrap span-wide">
+            <div class="table-caption"><strong>Table 8.</strong> Held-out test residual bias and RMSE across true capped RUL stages (4,291 cycles across 20 engines).</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>True RUL stage</th>
+                  <th class="num">Rows</th>
+                  <th class="num">HistGBR mean bias</th>
+                  <th class="num">HistGBR std error</th>
+                  <th class="num">HistGBR RMSE</th>
+                  <th class="num">Ridge mean bias</th>
+                  <th class="num">Ridge RMSE</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>0–15 (Critical)</td>
+                  <td class="num">320</td>
+                  <td class="num">+1.44</td>
+                  <td class="num">3.09</td>
+                  <td class="num">3.40</td>
+                  <td class="num">&minus;1.45</td>
+                  <td class="num">6.91</td>
+                </tr>
+                <tr>
+                  <td>16–30 (Alarm zone)</td>
+                  <td class="num">300</td>
+                  <td class="num">+1.94</td>
+                  <td class="num">4.54</td>
+                  <td class="num">4.93</td>
+                  <td class="num">+8.14</td>
+                  <td class="num">12.44</td>
+                </tr>
+                <tr>
+                  <td>31–60 (Late wear)</td>
+                  <td class="num">600</td>
+                  <td class="num">+2.50</td>
+                  <td class="num">11.32</td>
+                  <td class="num">11.58</td>
+                  <td class="num">+12.15</td>
+                  <td class="num">17.20</td>
+                </tr>
+                <tr>
+                  <td>61–90 (Mid wear)</td>
+                  <td class="num">600</td>
+                  <td class="num">+9.26</td>
+                  <td class="num">15.96</td>
+                  <td class="num">18.44</td>
+                  <td class="num">+10.99</td>
+                  <td class="num">17.02</td>
+                </tr>
+                <tr>
+                  <td>91–124 (Early wear)</td>
+                  <td class="num">680</td>
+                  <td class="num">&minus;3.09</td>
+                  <td class="num">14.50</td>
+                  <td class="num">14.81</td>
+                  <td class="num">&minus;6.81</td>
+                  <td class="num">16.17</td>
+                </tr>
+                <tr>
+                  <td>125 (Flat cap)</td>
+                  <td class="num">1,791</td>
+                  <td class="num">&minus;5.52</td>
+                  <td class="num">7.15</td>
+                  <td class="num">9.03</td>
+                  <td class="num">&minus;9.75</td>
+                  <td class="num">13.94</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Mid-wear error peak</summary>
+              <p>At RUL 61–90 cycles, some engines have entered steep wear while others remain near baseline, creating 18.44-cycle RMSE before trajectories converge tightly below RUL 30.</p>
+            </details>
+          </aside>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>Threshold brittleness on Engine #92</summary>
+              <p>A rigid regression trigger (&tau; = 9.0) leaves little margin if predicted RUL stalls at 10–11 cycles, whereas Logistic Regression integrates strong late sensor slopes into <em>p</em> &ge; 0.99 at cycle 323.</p>
+            </details>
+          </aside>
+
+          <details class="section-details">
+            <summary>Details — Complete 20-engine held-out test error audit</summary>
+            <div class="details-body">
+              <p>Per-engine RMSE, MAE, NASA asymmetric score, maximum over-prediction, and maintenance outcomes at 100:1 across all 20 held-out test engines:</p>
+              <div class="table-wrap" id="per-engine-audit-table-host">
+                <p>Full 20-engine audit populates from <code>report_data.json</code> (source: <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/data/processed/test_evaluation_summary.json" target="_blank" rel="noopener"><code>test_evaluation_summary.json</code></a>).</p>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        <!-- 8. Limitations -->
+        <section id="limitations" class="report-section">
+          <h2>Limitations</h2>
+          <p class="takeaway">
+            Clean simulator data, a single operating condition, a 20-engine test sample, and assumed maintenance costs bound what these benchmark savings prove.
+          </p>
+
+          <ul class="limitations-list">
+            <li>
+              <span class="lim-title">1. Simulated benchmark telemetry rather than real fleet logs</span>
+              <span class="lim-effect"><strong>Effect on conclusion:</strong> NASA C-MAPSS FD001 contains zero sensor dropouts, missing values, or maintenance crew noise. Real aircraft sensors suffer calibration shifts and intermittent gaps that would degrade our 30-cycle trailing features unless handled explicitly.</span>
+            </li>
+            <li>
+              <span class="lim-title">2. Single sea-level operating regime and single fault mode (HPC wear)</span>
+              <span class="lim-effect"><strong>Effect on conclusion:</strong> Our 10 dropped channels and fixed-regime scaling would fail under varying flight altitudes and Mach numbers (as in FD002/FD004), where operating settings must be conditioned on rather than discarded.</span>
+            </li>
+            <li>
+              <span class="lim-title">3. Small held-out test fleet (20 engines)</span>
+              <span class="lim-effect"><strong>Effect on conclusion:</strong> One missed engine changes the fleet failure rate by 5 percentage points and widens 95% bootstrap intervals (e.g., fixed-schedule cost spans [39.20, 79.55] and HistGBR spans [8.65, 23.60]).</span>
+            </li>
+            <li>
+              <span class="lim-title">4. Uncensored run-to-failure trajectories</span>
+              <span class="lim-effect"><strong>Effect on conclusion:</strong> Every training engine runs cleanly until failure with no preventive replacements mid-life. Real industrial records are heavily right-censored, requiring survival analysis or truncation handling.</span>
+            </li>
+            <li>
+              <span class="lim-title">5. Illustrative failure-to-waste cost ratios (10:1 to 300:1)</span>
+              <span class="lim-effect"><strong>Effect on conclusion:</strong> True airline costs depend on grounding delays, spare parts inventory, and safety regulations. If failure costs less than 10&times; a wasted cycle, the model stops beating fixed schedules.</span>
+            </li>
+            <li>
+              <span class="lim-title">6. Predictive association rather than causal root-cause proof</span>
+              <span class="lim-effect"><strong>Effect on conclusion:</strong> High weights on <code>sensor_11</code> and <code>sensor_3</code> track simulator degradation state, not whether intervening on static pressure alone would extend engine life.</span>
+            </li>
+          </ul>
+
+          <aside class="margin-note">
+            <details class="margin-note-box">
+              <summary>FD002–FD004 distribution shift</summary>
+              <p>Extending to multi-condition subsets requires regime-normalized sensor residuals (subtracting operating-cluster baselines) before computing trailing trends.</p>
+            </details>
+          </aside>
+
+          <details class="section-details">
+            <summary>Details — Sensitivity checks &amp; how each limitation could be tested</summary>
+            <div class="details-body">
+              <p>Within FD001 development CV (<a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/results/metrics/sensitivity_summary.csv" target="_blank" rel="noopener"><code>sensitivity_summary.csv</code></a>), shortening the trailing window from <em>k</em>=30 to <em>k</em>=10 increases HistGBR CV RMSE from <strong>12.221</strong> to <strong>15.901</strong> cycles and drops Logistic PR-AUC from <strong>0.9863</strong> to <strong>0.9582</strong>. Removing the 125-cycle RUL cap increases HistGBR CV RMSE to <strong>36.114</strong> cycles because early-life variance dominates squared error, even though policy cost near failure rises only modestly (<strong>7.97</strong> to <strong>10.20</strong>). Changing lead time <em>w</em> from 15 to 50 shifts positive base rate from 7.8% to 25.0% while keeping Logistic PR-AUC above <strong>0.985</strong>.</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 9. Conclusion -->
+        <section id="conclusion" class="report-section">
+          <h2>Conclusion</h2>
+          <p class="takeaway">
+            Strictly trailing sensor trends give reliable early warning of simulated turbofan failure and cut maintenance costs substantially below fixed schedules across cost ratios from 20:1 to 300:1.
+          </p>
+
+          <h3>What was found</h3>
+          <p>
+            Grouping splits strictly by engine and engineering 30-cycle trailing mean, standard deviation, and OLS slope features reduces held-out RUL RMSE from 41.56 (mean baseline) and 28.27 (age-only) down to 11.73 cycles (HistGradientBoosting, 95% CI [10.34, 12.99]), while calibrated L2 logistic regression achieves 0.9888 test PR-AUC (95% CI [0.9804, 0.9946]). Translated into a replacement decision rule locked on development engines, sensor-triggered maintenance lowers 100:1 test cost from 58.40 (fixed <em>K</em>* = 179, 4 failures) to 18.20 with zero failures (logistic regression, 68.8% savings) or 13.90 with one missed long-lived engine (HistGBR, 76.2% savings).
+          </p>
+
+          <h3>What was not shown</h3>
+          <p>
+            This study does not demonstrate generalization across multiple flight operating regimes, multi-fault interactions, missing or corrupted telemetry, or real airline maintenance logs. Nor do feature weights establish causal control over physical compressor degradation.
+          </p>
+
+          <h3>What would change the conclusion</h3>
+          <p>
+            The advantage over a fixed replacement schedule would narrow or vanish if in-service failure cost dropped below ~10&times; the cost of one wasted flight cycle, if fleet sensors suffered uncalibrated dropouts across flight regimes without regime normalization, or if maintenance shops required multi-week rather than 30-cycle scheduling lead times in an environment with high mid-wear noise.
+          </p>
+
+          <details class="section-details">
+            <summary>Details — Headline question-to-evidence verification summary</summary>
+            <div class="details-body">
+              <p>Every headline result reported above traces directly to <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/data/processed/test_evaluation_summary.json" target="_blank" rel="noopener"><code>data/processed/test_evaluation_summary.json</code></a> and <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/results/metrics/test_final_metrics.csv" target="_blank" rel="noopener"><code>results/metrics/test_final_metrics.csv</code></a>. Bootstrapped paired savings over the 20 held-out engines are positive in <strong>100.0%</strong> of resamples at 100:1 for Logistic Regression (+40.20, 95% CI [21.00, 61.50]), HistGB Classifier (+41.95, [25.60, 58.31]), and HistGB Regressor (+44.50, [28.15, 61.35]).</p>
+            </div>
+          </details>
+        </section>
+
+        <!-- 10. Reproduction -->
+        <section id="reproduction" class="report-section">
+          <h2>Reproduction</h2>
+          <p class="takeaway">
+            Every split, model run, metric table, PNG figure, and web JSON payload regenerates deterministically from saved configuration and scripts in the repository.
+          </p>
+
+          <div class="cmd-block">
+            <div class="cmd-header">
+              <span>1. Clone repository &amp; install pinned dependencies</span>
+              <button type="button" class="copy-btn" data-copy-target="cmd-setup">Copy</button>
+            </div>
+            <pre id="cmd-setup"><code>git clone https://github.com/dhvanilshah2007/es335-ml-project.git
+cd es335-ml-project
+python -m venv .venv
+# Windows: .venv\Scripts\activate   |   macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt</code></pre>
+          </div>
+
+          <div class="cmd-block">
+            <div class="cmd-header">
+              <span>2. Verify C-MAPSS FD001 data &amp; generate deterministic 80/20 splits (seed=42)</span>
+              <button type="button" class="copy-btn" data-copy-target="cmd-data">Copy</button>
+            </div>
+            <pre id="cmd-data"><code>python scripts/verify_data.py
+python scripts/make_splits.py</code></pre>
+          </div>
+
+          <div class="cmd-block">
+            <div class="cmd-header">
+              <span>3. Run EDA, causality tests, 5-fold CV, held-out test, and website export</span>
+              <button type="button" class="copy-btn" data-copy-target="cmd-pipeline">Copy</button>
+            </div>
+            <pre id="cmd-pipeline"><code>python scripts/run_eda.py
+python scripts/run_features.py
+python scripts/run_cv.py
+python scripts/run_test_evaluation.py
+python scripts/export_web_data.py</code></pre>
+          </div>
+
+          <h3>What a reader can verify in the repository</h3>
+          <ul class="plain-list">
+            <li><strong>Configuration &amp; seeds:</strong> <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/config.yaml" target="_blank" rel="noopener"><code>config.yaml</code></a> and exact engine split lists in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/data/splits" target="_blank" rel="noopener"><code>data/splits/</code></a>.</li>
+            <li><strong>Leakage-proof code &amp; notebooks:</strong> Modular Python pipeline in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/src" target="_blank" rel="noopener"><code>src/</code></a> and walkthrough notebooks in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/notebooks" target="_blank" rel="noopener"><code>notebooks/</code></a>.</li>
+            <li><strong>Saved metrics &amp; static site export:</strong> CSV tables in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/results/metrics" target="_blank" rel="noopener"><code>results/metrics/</code></a> and the exact JSON generator <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/scripts/export_web_data.py" target="_blank" rel="noopener"><code>scripts/export_web_data.py</code></a>.</li>
+            <li><strong>Setup, data access &amp; disclosures:</strong> Full instructions, NASA C-MAPSS data access details, AI-use disclosure, and citations in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/README.md" target="_blank" rel="noopener"><code>README.md</code></a>.</li>
+          </ul>
+
+          <details class="section-details">
+            <summary>Details — Citations and AI-use disclosure</summary>
+            <div class="details-body">
+              <p><strong>Dataset citation:</strong> A. Saxena, K. Goebel, D. Simon, and N. Eklund, "Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation," in <em>Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08)</em>, Denver, CO, Oct. 2008.</p>
+              <p><strong>Software stack:</strong> Python, pandas, NumPy, scikit-learn, SciPy, Matplotlib, and PyYAML (pinned in <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/requirements.txt" target="_blank" rel="noopener"><code>requirements.txt</code></a>). Static site built in plain HTML, CSS, and ES-module JavaScript with Literata and Public Sans web fonts.</p>
+              <p><strong>AI-use disclosure:</strong> AI coding assistance was used to structure repository boilerplate, verify scikit-learn pipeline causality tests, draft explanatory copy, and construct the static interactive SVG visualizations in <code>docs/</code>. Every split, metric, threshold, and cost simulation output was executed locally and verified directly against the saved CSV and JSON files in <code>results/metrics/</code> and <code>data/processed/</code>.</p>
+            </div>
+          </details>
+        </section>
+
+        <footer class="report-footer">
+          <span>ES 335 Machine Learning (2026) · NASA C-MAPSS FD001 Predictive Maintenance</span>
+          <span><a href="#top">Back to top</a> · <a href="https://github.com/dhvanilshah2007/es335-ml-project" target="_blank" rel="noopener">Repository</a></span>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 # Predictive Maintenance on NASA C-MAPSS Turbofan Engines
 
 **Course:** ES 335: Machine Learning (2026)  
+**Authors:** Dhvanil Shah (`25110105`), Aarav Malde (`25110003`)  
 **Dataset:** NASA C-MAPSS Turbofan Engine Degradation Simulation (Subset FD001)  
 **Deliverables:** Reproducible Python Pipeline (`src/`, `scripts/`, `notebooks/`) & Static GitHub Pages Site (`docs/`)
 
@@ -54,21 +55,31 @@ This project studies whether multivariate sensor telemetry from turbofan engines
 │   ├── run_eda.py            # EDA screening, PCA index, and 3 diagnostic figures
 │   ├── run_features.py       # Causality tests and trailing feature diagnostics
 │   ├── run_cv.py             # 5-fold GroupKFold ladder and PR/calibration plots
-│   └── run_test_evaluation.py # Held-out test, cost sweep, bootstrap CIs, leakage check
+│   ├── run_test_evaluation.py # Held-out test, cost sweep, bootstrap CIs, leakage check
+│   └── export_web_data.py    # Exports docs/data/report_data.json & static fallback PNGs
 ├── notebooks/
 │   ├── 01_eda_and_features.ipynb         # Exploratory analysis & trailing-window feature walkthrough
 │   └── 02_modeling_and_evaluation.ipynb  # Baseline ladder, cost policy & held-out test analysis
 ├── results/
 │   ├── metrics/              # Core CSV tables (EDA screening, CV ladders, test CIs, cost sweep, leakage)
 │   └── figures/              # 9 clean, focused PNG plots
-└── docs/                     # Static GitHub Pages site
+└── docs/                     # Static GitHub Pages site (index.html, css/report.css, js/main.js, data/, figures/)
 ```
 
 ---
 
-## 4. Reproduction Steps
+## 4. Data-Access Instructions
 
-1. **Create and activate a virtual environment, then install dependencies:**
+The benchmark dataset (`CMAPSSData/`) uses **NASA C-MAPSS Turbofan Engine Degradation Simulation (Subset FD001)**:
+- **Included files:** `train_FD001.txt` (100 run-to-failure engines, 20,631 rows), `test_FD001.txt` (100 truncated test engines, 13,096 rows), `RUL_FD001.txt` (true remaining cycles at cutoff), and `readme.txt`.
+- **Official source:** Publicly available without registration from the NASA Prognostics Data Repository (NASA Ames Research Center), also mirrored on Kaggle (`CMAPSS Jet Engine Simulated Data`).
+- **Verification:** Run `python scripts/verify_data.py` to confirm file presence, row/column dimensions, and formatting integrity before generating splits.
+
+---
+
+## 5. Reproduction Steps
+
+1. **Create and activate a virtual environment, then install pinned dependencies:**
    ```bash
    python -m venv .venv
    # Windows: .venv\Scripts\activate
@@ -76,7 +87,7 @@ This project studies whether multivariate sensor telemetry from turbofan engines
    pip install -r requirements.txt
    ```
 
-2. **Run the pipeline end-to-end:**
+2. **Run the pipeline end-to-end (including static website JSON export):**
    ```bash
    python scripts/verify_data.py
    python scripts/make_splits.py
@@ -84,4 +95,19 @@ This project studies whether multivariate sensor telemetry from turbofan engines
    python scripts/run_features.py
    python scripts/run_cv.py
    python scripts/run_test_evaluation.py
+   python scripts/export_web_data.py
    ```
+
+3. **Preview the static GitHub Pages site locally:**
+   ```bash
+   python -m http.server 8000
+   # Open http://localhost:8000/docs/
+   ```
+
+---
+
+## 6. AI-Use Disclosure & Citations
+
+- **AI-Use Disclosure:** AI coding assistance was used to structure modular repository boilerplate, verify scikit-learn pipeline causality tests, refine technical prose, and implement the client-side SVG charts and interactive widgets in `docs/`. All data splits, model training runs, cross-validation metrics, cost policy sweeps, bootstrap confidence intervals, and exported JSON artifacts were executed locally and verified directly against the generated scripts and saved CSV/JSON outputs.
+- **Dataset Citation:** A. Saxena, K. Goebel, D. Simon, and N. Eklund, "Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation," in *Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08)*, Denver, CO, Oct. 2008.
+- **Software Citations:** Built with Python, `pandas`, `numpy`, `scikit-learn` (Pedregosa et al., *JMLR* 12, 2011), `scipy`, `matplotlib`, and `PyYAML`. Typography uses `Literata` and `Public Sans`.
