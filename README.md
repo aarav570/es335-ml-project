@@ -3,7 +3,8 @@
 **Course:** ES 335: Machine Learning (2026)  
 **Authors:** Dhvanil Shah (`25110105`), Aarav Malde (`25110003`)  
 **Dataset:** NASA C-MAPSS Turbofan Engine Degradation Simulation (Subset FD001)  
-**Deliverables:** Reproducible Python Pipeline (`src/`, `scripts/`, `notebooks/`) & Static GitHub Pages Site (`docs/`)
+**Deliverables:** Reproducible Python Pipeline (`src/`, `scripts/`, `notebooks/`) & Static GitHub Pages Site (`docs/`)  
+**Live Report:** [https://dhvanilshah2007.github.io/es335-ml-project/](https://dhvanilshah2007.github.io/es335-ml-project/)
 
 ---
 
@@ -36,6 +37,7 @@ This project studies whether multivariate sensor telemetry from turbofan engines
 
 ```text
 ├── CMAPSSData/               # Raw NASA C-MAPSS FD001 files (train, test, RUL, readme)
+├── AI_DISCLOSURE.md          # Detailed AI-use disclosure (Antigravity) & verification log
 ├── config.yaml               # Centralized configuration (seed, w, k, RUL cap, cost ratios)
 ├── requirements.txt          # Python environment dependencies
 ├── data/
@@ -98,7 +100,8 @@ The benchmark dataset (`CMAPSSData/`) uses **NASA C-MAPSS Turbofan Engine Degrad
    python scripts/export_web_data.py
    ```
 
-3. **Preview the static GitHub Pages site locally:**
+3. **Open the live report or preview the static GitHub Pages site locally:**
+   - **GitHub Pages:** [https://dhvanilshah2007.github.io/es335-ml-project/](https://dhvanilshah2007.github.io/es335-ml-project/)
    ```bash
    python -m http.server 8000
    # Open http://localhost:8000/docs/
@@ -108,6 +111,6 @@ The benchmark dataset (`CMAPSSData/`) uses **NASA C-MAPSS Turbofan Engine Degrad
 
 ## 6. AI-Use Disclosure & Citations
 
-- **AI-Use Disclosure:** AI coding assistance was used to structure modular repository boilerplate, verify scikit-learn pipeline causality tests, refine technical prose, and implement the client-side SVG charts and interactive widgets in `docs/`. All data splits, model training runs, cross-validation metrics, cost policy sweeps, bootstrap confidence intervals, and exported JSON artifacts were executed locally and verified directly against the generated scripts and saved CSV/JSON outputs.
+- **AI-Use Disclosure:** **Antigravity** (Google DeepMind's agentic AI coding assistant) was used to assist with repository scaffolding, modular pipeline causality unit tests (`scripts/run_features.py`), client-side SVG charts and interactive widgets in `docs/`, and UX/editorial refinement. All data splits, model training runs, cross-validation metrics, cost policy sweeps, bootstrap confidence intervals, and exported JSON artifacts were executed locally and verified directly against the saved CSV and JSON outputs. See [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md) for the full component-by-component disclosure.
 - **Dataset Citation:** A. Saxena, K. Goebel, D. Simon, and N. Eklund, "Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation," in *Proceedings of the 1st International Conference on Prognostics and Health Management (PHM08)*, Denver, CO, Oct. 2008.
 - **Software Citations:** Built with Python, `pandas`, `numpy`, `scikit-learn` (Pedregosa et al., *JMLR* 12, 2011), `scipy`, `matplotlib`, and `PyYAML`. Typography uses `Literata` and `Public Sans`.

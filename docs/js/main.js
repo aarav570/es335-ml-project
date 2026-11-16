@@ -97,10 +97,10 @@ function drawAxes(svg, { xMap, yMap, xMin, xMax, yMin, yMax, xTicks, yTicks, xLa
     g.appendChild(
       el('text', {
         x: x0 - 7,
-        y: py + 3.5,
+        y: py + 4,
         'text-anchor': 'end',
         fill: COLORS.muted,
-        'font-size': 10.5,
+        'font-size': 11.8,
       }, yFmt ? yFmt(t) : String(Math.round(t)))
     );
   });
@@ -115,10 +115,10 @@ function drawAxes(svg, { xMap, yMap, xMin, xMax, yMin, yMax, xTicks, yTicks, xLa
     g.appendChild(
       el('text', {
         x: px,
-        y: y0 + 16,
+        y: y0 + 17,
         'text-anchor': 'middle',
         fill: COLORS.muted,
-        'font-size': 10.5,
+        'font-size': 11.8,
       }, xFmt ? xFmt(t) : String(Math.round(t)))
     );
   });
@@ -127,10 +127,10 @@ function drawAxes(svg, { xMap, yMap, xMin, xMax, yMin, yMax, xTicks, yTicks, xLa
     g.appendChild(
       el('text', {
         x: (x0 + x1) / 2,
-        y: y0 + 32,
+        y: y0 + 34,
         'text-anchor': 'middle',
         fill: COLORS.ink,
-        'font-size': 11,
+        'font-size': 12.5,
         'font-weight': 600,
       }, xLabel)
     );
@@ -141,7 +141,7 @@ function drawAxes(svg, { xMap, yMap, xMin, xMax, yMin, yMax, xTicks, yTicks, xLa
       const s = yFmt ? yFmt(t) : String(Math.round(t));
       return Math.max(acc, s.length);
     }, 1);
-    const labelOffset = Math.max(38, maxTickLen * 6.2 + 15);
+    const labelOffset = Math.max(40, maxTickLen * 6.8 + 16);
     const lx = Math.max(12, x0 - labelOffset);
     const ly = (y0 + y1) / 2;
     g.appendChild(
@@ -150,7 +150,7 @@ function drawAxes(svg, { xMap, yMap, xMin, xMax, yMin, yMax, xTicks, yTicks, xLa
         y: ly,
         'text-anchor': 'middle',
         fill: COLORS.ink,
-        'font-size': 11,
+        'font-size': 12.5,
         'font-weight': 600,
         transform: `rotate(-90 ${lx} ${ly})`,
       }, yLabel)
@@ -170,7 +170,7 @@ function renderHeroChart(data) {
 
   const W = 580;
   const H = 320;
-  const pad = { l: 54, r: 40, t: 22, b: 39 };
+  const pad = { l: 56, r: 44, t: 28, b: 42 };
   const svg = createSvg(W, H, 'Held-out Engine 24 sensor trace and alarm cycles');
 
   const xMap = scaleLinear(1, 185, pad.l, W - pad.r);
@@ -196,7 +196,7 @@ function renderHeroChart(data) {
   svg.appendChild(el('line', { x1: rx, x2: rx, y1: H - pad.b, y2: pad.t, stroke: COLORS.rule, 'stroke-width': 1 }));
   [0, 0.5, 1.0].forEach((p) => {
     const py = yProb(p);
-    svg.appendChild(el('text', { x: rx + 6, y: py + 3.5, fill: COLORS.model, 'font-size': 10.5 }, p.toFixed(1)));
+    svg.appendChild(el('text', { x: rx + 6, y: py + 4, fill: COLORS.model, 'font-size': 11.8 }, p.toFixed(1)));
   });
 
   // Shaded w=30 alarm zone (cycles 117..147)
@@ -212,10 +212,10 @@ function renderHeroChart(data) {
   }));
   svg.appendChild(el('text', {
     x: (xZone0 + xZone1) / 2,
-    y: pad.t + 13,
+    y: pad.t - 8,
     'text-anchor': 'middle',
     fill: COLORS.model,
-    'font-size': 10.2,
+    'font-size': 11.5,
     'font-weight': 600,
     stroke: '#F7F8FA',
     'stroke-width': 3,
@@ -246,10 +246,10 @@ function renderHeroChart(data) {
 
   // Vertical markers: Logistic (130), HistGBR (140), Failure (147), Fixed K* (179)
   const markers = [
-    { x: 130, color: COLORS.model, dash: 'none', label: 'Logistic @130', yOff: 34, anchor: 'end' },
-    { x: 140, color: COLORS.test, dash: '3,2', label: 'HistGBR @140', yOff: 54, anchor: 'end' },
-    { x: 147, color: COLORS.fail, dash: 'none', label: 'Failure @147', yOff: 17, anchor: 'start' },
-    { x: 179, color: COLORS.fixed, dash: '5,4', label: 'Fixed K*=179 (missed)', yOff: 76, anchor: 'end' },
+    { x: 130, color: COLORS.model, dash: 'none', label: 'Logistic @130', yOff: 22, anchor: 'end' },
+    { x: 140, color: COLORS.test, dash: '3,2', label: 'HistGBR @140', yOff: 44, anchor: 'end' },
+    { x: 147, color: COLORS.fail, dash: 'none', label: 'Failure @147', yOff: 18, anchor: 'start' },
+    { x: 179, color: COLORS.fixed, dash: '5,4', label: 'Fixed K*=179', yOff: 56, anchor: 'end', subLabel: '(missed)' },
   ];
   markers.forEach((m) => {
     const px = xMap(m.x);
@@ -263,18 +263,33 @@ function renderHeroChart(data) {
       'stroke-dasharray': m.dash,
     }));
     const textX = m.anchor === 'end' ? px - 4 : px + 4;
+    const textFill = m.color === COLORS.test ? COLORS.testInk : m.color === COLORS.fixed ? COLORS.fixedInk : m.color;
     svg.appendChild(el('text', {
       x: textX,
       y: pad.t + m.yOff,
       'text-anchor': m.anchor,
-      fill: m.color === COLORS.test ? COLORS.testInk : m.color === COLORS.fixed ? COLORS.fixedInk : m.color,
-      'font-size': 10.8,
+      fill: textFill,
+      'font-size': 11.8,
       'font-weight': 600,
       'paint-order': 'stroke',
       stroke: '#FFFFFF',
       'stroke-width': 3.2,
       'stroke-linejoin': 'round',
     }, m.label));
+    if (m.subLabel) {
+      svg.appendChild(el('text', {
+        x: textX,
+        y: pad.t + m.yOff + 14,
+        'text-anchor': m.anchor,
+        fill: textFill,
+        'font-size': 11.5,
+        'font-weight': 600,
+        'paint-order': 'stroke',
+        stroke: '#FFFFFF',
+        'stroke-width': 3.2,
+        'stroke-linejoin': 'round',
+      }, m.subLabel));
+    }
   });
 
   // Direct line labels
@@ -282,7 +297,7 @@ function renderHeroChart(data) {
     x: xMap(10),
     y: ySensor(0.35),
     fill: COLORS.ink,
-    'font-size': 11,
+    'font-size': 12.2,
     'font-weight': 600,
     stroke: '#F7F8FA',
     'stroke-width': 3.5,
@@ -292,7 +307,7 @@ function renderHeroChart(data) {
     x: xMap(76),
     y: yProb(0.14),
     fill: COLORS.model,
-    'font-size': 10.8,
+    'font-size': 12,
     'font-weight': 600,
     stroke: '#F7F8FA',
     'stroke-width': 3.5,
@@ -386,16 +401,16 @@ function renderFigure1(data) {
   }));
   svg.appendChild(el('text', {
     x: xK + 5,
-    y: pad.t + 12,
+    y: pad.t + 13,
     fill: COLORS.fixedInk,
-    'font-size': 10.5,
+    'font-size': 11.8,
     'font-weight': 600,
   }, 'Fixed schedule K* = 179'));
 
   // Direct group labels
-  svg.appendChild(el('text', { x: xMap(260), y: pad.t + 14, fill: COLORS.dev, 'font-size': 11, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: xMap(250), y: pad.t + 14, fill: COLORS.dev, 'font-size': 12, 'font-weight': 600 },
     '■ 80 Development engines (128–362 cyc, median 199)'));
-  svg.appendChild(el('text', { x: xMap(260), y: pad.t + 30, fill: COLORS.testInk, 'font-size': 11, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: xMap(250), y: pad.t + 31, fill: COLORS.testInk, 'font-size': 12, 'font-weight': 600 },
     '■ 20 Held-out test engines (147–341 cyc, median 198.5)'));
 
   host.innerHTML = '';
@@ -444,8 +459,8 @@ function renderFigure2(data) {
   svg.appendChild(el('path', { d: buildLinePath(xs, s11.mean, xA, yA), fill: 'none', stroke: COLORS.dev, 'stroke-width': 2.2 }));
 
   svg.appendChild(el('line', { x1: xA(-125), x2: xA(-125), y1: padA.t, y2: H - padA.b, stroke: COLORS.fixed, 'stroke-dasharray': '4,3', 'stroke-width': 1.2 }));
-  svg.appendChild(el('text', { x: xA(-122), y: padA.t + 12, fill: COLORS.fixedInk, 'font-size': 10 }, 'Cap onset (-125)'));
-  svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: xA(-122), y: padA.t + 13, fill: COLORS.fixedInk, 'font-size': 11.5 }, 'Cap onset (-125)'));
+  svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 12.2, 'font-weight': 600 },
     'A. Sensor 11 mean ± 1 SD (80 dev engines)'));
 
   // Panel B: 1D PCA Health Index
@@ -473,8 +488,8 @@ function renderFigure2(data) {
   svg.appendChild(el('path', { d: buildLinePath(xs, pc1.mean, xB, yB), fill: 'none', stroke: COLORS.model, 'stroke-width': 2.2 }));
 
   svg.appendChild(el('line', { x1: xB(-30), x2: xB(-30), y1: padB.t, y2: H - padB.b, stroke: COLORS.fail, 'stroke-dasharray': '4,3', 'stroke-width': 1.2 }));
-  svg.appendChild(el('text', { x: xB(-34), y: padB.t + 14, 'text-anchor': 'end', fill: COLORS.fail, 'font-size': 10, 'font-weight': 600 }, 'Alarm window (w=30)'));
-  svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: xB(-34), y: padB.t + 14, 'text-anchor': 'end', fill: COLORS.fail, 'font-size': 11.5, 'font-weight': 600 }, 'Alarm window (w=30)'));
+  svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 12.2, 'font-weight': 600 },
     `B. 1D PCA Health Index (r = +${aligned.pca_info.corr_pc1_with_rul_capped})`));
 
   host.innerHTML = '';
@@ -520,9 +535,9 @@ function renderFigure3(data) {
 
   svg.appendChild(el('path', { d: buildLinePath(cyc, raw, xA, yA), fill: 'none', stroke: COLORS.fixed, 'stroke-width': 1, opacity: 0.75 }));
   svg.appendChild(el('path', { d: buildLinePath(cyc, mean30, xA, yA), fill: 'none', stroke: COLORS.model, 'stroke-width': 2.4 }));
-  svg.appendChild(el('text', { x: xA(20), y: yA(47.95), fill: COLORS.fixedInk, 'font-size': 10 }, 'Raw cycle reading'));
-  svg.appendChild(el('text', { x: xA(20), y: yA(47.82), fill: COLORS.model, 'font-size': 10.5, 'font-weight': 600 }, 'Trailing mean (k=30)'));
-  svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: xA(20), y: yA(47.97), fill: COLORS.fixedInk, 'font-size': 11.5 }, 'Raw cycle reading'));
+  svg.appendChild(el('text', { x: xA(20), y: yA(47.81), fill: COLORS.model, 'font-size': 11.8, 'font-weight': 600 }, 'Trailing mean (k=30)'));
+  svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 12.2, 'font-weight': 600 },
     'A. Trailing mean suppresses cycle noise'));
 
   // Panel B: Trailing OLS Slope
@@ -546,9 +561,9 @@ function renderFigure3(data) {
 
   svg.appendChild(el('line', { x1: xB(1), x2: xB(eng.max_cycle), y1: yB(0), y2: yB(0), stroke: COLORS.fixed, 'stroke-dasharray': '3,3', 'stroke-width': 1 }));
   svg.appendChild(el('path', { d: buildLinePath(cyc, slope30, xB, yB), fill: 'none', stroke: COLORS.dev, 'stroke-width': 2.2 }));
-  svg.appendChild(el('text', { x: xB(148), y: yB(0.022), 'text-anchor': 'end', fill: COLORS.dev, 'font-size': 10, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: xB(148), y: yB(0.022), 'text-anchor': 'end', fill: COLORS.dev, 'font-size': 11.5, 'font-weight': 600 },
     'Steep upward wear drift'));
-  svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
+  svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 12.2, 'font-weight': 600 },
     'B. Stabilized trailing OLS drift slope'));
 
   host.innerHTML = '';
@@ -564,15 +579,15 @@ function renderFigure4() {
   if (!host) return;
 
   const W = 780;
-  const H = 260;
+  const H = 272;
   const svg = createSvg(W, H, 'Engine-grouped split architecture: 80 development engines vs 20 sealed held-out test engines');
 
   function box(x, y, w, h, title, lines, stroke, fill) {
     const g = el('g');
     g.appendChild(el('rect', { x, y, width: w, height: h, rx: 3, ry: 3, fill, stroke, 'stroke-width': 1.6 }));
-    g.appendChild(el('text', { x: x + 12, y: y + 20, fill: stroke === COLORS.test ? COLORS.testInk : stroke, 'font-size': 12, 'font-weight': 700 }, title));
+    g.appendChild(el('text', { x: x + 12, y: y + 20, fill: stroke === COLORS.test ? COLORS.testInk : stroke, 'font-size': 12.5, 'font-weight': 700 }, title));
     lines.forEach((line, idx) => {
-      g.appendChild(el('text', { x: x + 12, y: y + 40 + idx * 17, fill: COLORS.ink, 'font-size': 11 }, line));
+      g.appendChild(el('text', { x: x + 12, y: y + 40 + idx * 17, fill: COLORS.ink, 'font-size': 11.5 }, line));
     });
     svg.appendChild(g);
   }
@@ -602,9 +617,10 @@ function renderFigure4() {
   ], COLORS.test, '#FDF7E7');
 
   // Official truncated test box
-  box(250, 168, 520, 76, 'Secondary Check: Official test_FD001.txt (100 Truncated Engines, 13,096 rows)', [
-    'Models fitted on all 80 development engines checked once at each engine’s final cutoff cycle against RUL_FD001.txt.',
-    'Not used for cost-policy simulation because trajectories terminate prior to failure.',
+  box(250, 168, 520, 90, 'Secondary Check: Official test_FD001.txt (100 Truncated Engines, 13,096 rows)', [
+    'Models fitted on all 80 development engines are checked once at each',
+    'engine’s final cutoff cycle against official RUL_FD001.txt targets.',
+    'Not used for cost-policy simulation (trajectories end before failure).',
   ], COLORS.fixed, COLORS.surface);
 
   // Arrows
@@ -774,16 +790,16 @@ function initMainExplorer(data) {
     roWasted.textContent = `${testWasted.toFixed(2)} cyc`;
     roBreakeven.textContent = beStr;
 
-    const thText = model.score_is_rul ? `RUL <= ${thVal.toFixed(1)}` : `p >= ${thVal.toFixed(2)}`;
-    const devOptText = model.score_is_rul ? `tau*_dev = ${devOptVal.toFixed(1)}` : `p*_dev = ${devOptVal.toFixed(2)}`;
+    const thText = model.score_is_rul ? `RUL &le; <strong>${thVal.toFixed(1)}</strong>` : `<em>p</em> &ge; <strong>${thVal.toFixed(2)}</strong>`;
+    const devOptText = model.score_is_rul ? `&tau;*_dev = <strong>${devOptVal.toFixed(1)}</strong>` : `<em>p</em>*_dev = <strong>${devOptVal.toFixed(2)}</strong>`;
     const lockNote = isDevLocked
       ? `using the development-locked threshold (${devOptText})`
       : `at manual threshold ${thText} (development-locked was ${devOptText})`;
 
-    takeawayEl.textContent =
-      `On the 20 held-out test engines at cost ratio ${r}:1, ${model.label} ${lockNote} averages ${modelTestCost.toFixed(2)} cost per engine ` +
-      `(${testFail} failure${testFail === 1 ? '' : 's'}, ${testWasted.toFixed(1)} wasted cycles) versus ${fixed.testCost.toFixed(2)} for the dev-tuned fixed schedule K*=${fixed.kStar} (${fixed.testFail} failure${fixed.testFail === 1 ? '' : 's'}) — ` +
-      `${savings >= 0 ? `saving ${savings.toFixed(2)} per engine (${savingsPct.toFixed(1)}%)` : `costing ${Math.abs(savings).toFixed(2)} more than fixed`}.`;
+    takeawayEl.innerHTML =
+      `On the <strong>20</strong> held-out test engines at cost ratio <strong>${r}:1</strong>, <strong>${model.label}</strong> ${lockNote} averages <strong>${modelTestCost.toFixed(2)}</strong> cost per engine ` +
+      `(<strong>${testFail}</strong> failure${testFail === 1 ? '' : 's'}, <strong>${testWasted.toFixed(1)}</strong> wasted cycles) versus <strong>${fixed.testCost.toFixed(2)}</strong> for the dev-tuned fixed schedule <strong>K*=${fixed.kStar}</strong> (<strong>${fixed.testFail}</strong> failure${fixed.testFail === 1 ? '' : 's'}) — ` +
+      `${savings >= 0 ? `saving <strong>${savings.toFixed(2)} per engine (${savingsPct.toFixed(1)}%)</strong>` : `costing <strong>${Math.abs(savings).toFixed(2)}</strong> more than fixed`}.`;
 
     // ---- Panel A: Cost Curve across ratios 10..300 ----
     const ratios = [10, 20, 30, 50, 75, 100, 150, 200, 300];
@@ -853,7 +869,7 @@ function initMainExplorer(data) {
     svgA.appendChild(el('circle', { cx: xA(r), cy: yA(fixed.testCost), r: 4.2, fill: COLORS.fixed, stroke: '#FFFFFF', 'stroke-width': 1.4 }));
 
     // Top key strip + collision-clamped direct labels
-    const keyStrip = el('text', { x: padA.l, y: 14, 'font-size': 9.5, 'font-weight': 600 });
+    const keyStrip = el('text', { x: padA.l, y: 14, 'font-size': 11.2, 'font-weight': 600 });
     keyStrip.appendChild(el('tspan', { fill: COLORS.fixedInk }, 'Fixed schedule (test)'));
     keyStrip.appendChild(el('tspan', { fill: COLORS.muted }, ' · '));
     keyStrip.appendChild(el('tspan', { fill: COLORS.model }, 'Model policy (test)'));
@@ -864,18 +880,18 @@ function initMainExplorer(data) {
     const yFloor = yA(0) - 8;
     const upperModelY = Math.min(yA(modTestSeries[7]), yA(modDevSeries[7]));
     const lowerModelY = Math.max(yA(modTestSeries[7]), yA(modDevSeries[7]));
-    const yModLbl = Math.max(padA.t + 22, Math.min(yFloor - 13, upperModelY - 7));
-    let yDevLbl = lowerModelY + 12 <= yFloor ? lowerModelY + 12 : Math.max(padA.t + 10, yModLbl - 13);
-    if (Math.abs(yDevLbl - yModLbl) < 12) {
-      yDevLbl = Math.max(padA.t + 10, yModLbl - 13);
+    const yModLbl = Math.max(padA.t + 22, Math.min(yFloor - 14, upperModelY - 7));
+    let yDevLbl = lowerModelY + 14 <= yFloor ? lowerModelY + 14 : Math.max(padA.t + 10, yModLbl - 14);
+    if (Math.abs(yDevLbl - yModLbl) < 14) {
+      yDevLbl = Math.max(padA.t + 10, yModLbl - 14);
     }
-    const yFixLbl = Math.max(padA.t + 10, Math.min(Math.min(yModLbl, yDevLbl) - 13, yA(fixSeries[7]) - 8));
+    const yFixLbl = Math.max(padA.t + 10, Math.min(Math.min(yModLbl, yDevLbl) - 14, yA(fixSeries[7]) - 8));
     const haloAttrs = { stroke: '#FFFFFF', 'stroke-width': 3.5, 'paint-order': 'stroke' };
-    svgA.appendChild(el('text', { x: xA(205), y: yFixLbl, fill: COLORS.fixedInk, 'font-size': 10, 'font-weight': 600, ...haloAttrs },
+    svgA.appendChild(el('text', { x: xA(205), y: yFixLbl, fill: COLORS.fixedInk, 'font-size': 11.2, 'font-weight': 600, ...haloAttrs },
       'Fixed (test)'));
-    svgA.appendChild(el('text', { x: xA(205), y: yModLbl, fill: COLORS.model, 'font-size': 10, 'font-weight': 600, ...haloAttrs },
+    svgA.appendChild(el('text', { x: xA(205), y: yModLbl, fill: COLORS.model, 'font-size': 11.2, 'font-weight': 600, ...haloAttrs },
       'Model (test)'));
-    svgA.appendChild(el('text', { x: xA(205), y: yDevLbl, fill: COLORS.dev, 'font-size': 9.8, ...haloAttrs },
+    svgA.appendChild(el('text', { x: xA(205), y: yDevLbl, fill: COLORS.dev, 'font-size': 11.2, ...haloAttrs },
       'Model (dev CV)'));
 
     hostA.innerHTML = '';
@@ -933,9 +949,9 @@ function initMainExplorer(data) {
 
     svgB.appendChild(el('text', {
       x: padBTop.l + 6,
-      y: padBTop.t + 10,
+      y: padBTop.t + 11,
       fill: COLORS.dev,
-      'font-size': 9.8,
+      'font-size': 11,
       'font-weight': 600,
       'paint-order': 'stroke',
       stroke: '#FFFFFF',
@@ -944,9 +960,9 @@ function initMainExplorer(data) {
     }, `Dev CV (${devOptVal})`));
     svgB.appendChild(el('text', {
       x: padBTop.l + 6,
-      y: padBTop.t + 22,
+      y: padBTop.t + 25,
       fill: COLORS.testInk,
-      'font-size': 9.6,
+      'font-size': 11,
       'font-weight': 600,
       'paint-order': 'stroke',
       stroke: '#FFFFFF',
@@ -1006,11 +1022,11 @@ function initMainExplorer(data) {
         y: HB - 11,
         'text-anchor': 'middle',
         fill: tk === 179 ? COLORS.fixedInk : COLORS.muted,
-        'font-size': 9.5,
+        'font-size': 11.2,
       }, String(tk)));
     });
 
-    const stripLegend = el('text', { x: padBBot.l, y: padBBot.t - 6, fill: COLORS.ink, 'font-size': 9.8, 'font-weight': 600 });
+    const stripLegend = el('text', { x: padBBot.l, y: padBBot.t - 6, fill: COLORS.ink, 'font-size': 11.2, 'font-weight': 600 });
     stripLegend.appendChild(el('tspan', { fill: COLORS.ink }, '20 Held-out test lifetimes: '));
     stripLegend.appendChild(el('tspan', { fill: COLORS.model }, '● timely (≤30c)  '));
     stripLegend.appendChild(el('tspan', { fill: COLORS.testInk }, '■ early (>30c)  '));
@@ -1097,11 +1113,11 @@ function initLeakageWidget(data) {
     const traj = leak.scatter_and_trajectory.trajectory_example;
 
     if (mode === 'proper') {
-      takeawayEl.textContent =
-        `Proper engine-level split holds out all cycles of unseen engines: ${row.model_label} achieves ${row.proper_heldout_engines_test_rmse} test RMSE (R^2 = ${row.proper_test_r2}, NASA asym = ${row.proper_test_nasa_asym}).`;
+      takeawayEl.innerHTML =
+        `Proper engine-level split holds out all cycles of unseen engines: <strong>${row.model_label}</strong> achieves <strong>${row.proper_heldout_engines_test_rmse} test RMSE</strong> (R&sup2; = <strong>${row.proper_test_r2}</strong>, NASA asym = <strong>${row.proper_test_nasa_asym}</strong>).`;
     } else {
-      takeawayEl.textContent =
-        `Flawed random row split leaks ~80% of adjacent cycles into training: ${row.model_label} reports an artificially deflated ${row.leaky_random_row_split_test_rmse} RMSE — a fake ${row.artificial_error_reduction_pct}% drop (${row.artificial_rmse_drop_cycles} cycles).`;
+      takeawayEl.innerHTML =
+        `Flawed random row split leaks <strong>~80%</strong> of adjacent cycles into training: <strong>${row.model_label}</strong> reports an artificially deflated <strong>${row.leaky_random_row_split_test_rmse} RMSE</strong> — a fake <strong>${row.artificial_error_reduction_pct}% drop</strong> (<strong>${row.artificial_rmse_drop_cycles} cycles</strong>).`;
     }
 
     const W = 780;
@@ -1140,7 +1156,7 @@ function initLeakageWidget(data) {
         stroke: COLORS.model,
         'stroke-width': 2.0,
       }));
-      svg.appendChild(el('text', { x: xA(20), y: yA(15), fill: COLORS.model, 'font-size': 10, 'font-weight': 600 },
+      svg.appendChild(el('text', { x: xA(20), y: yA(15), fill: COLORS.model, 'font-size': 11.5, 'font-weight': 600 },
         'Proper unseen-engine prediction (Random Forest)'));
     } else {
       svg.appendChild(el('path', {
@@ -1155,10 +1171,10 @@ function initLeakageWidget(data) {
           svg.appendChild(el('circle', { cx: xA(c), cy: yA(traj.true_rul[i]), r: 2.3, fill: COLORS.fail, opacity: 0.75 }));
         }
       });
-      svg.appendChild(el('text', { x: xA(14), y: yA(14), fill: COLORS.fail, 'font-size': 10, 'font-weight': 600 },
+      svg.appendChild(el('text', { x: xA(14), y: yA(14), fill: COLORS.fail, 'font-size': 11.5, 'font-weight': 600 },
         '● Neighboring cycles leaked into train set'));
     }
-    svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
+    svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 12, 'font-weight': 600 },
       `A. Engine #${traj.unit_id} trajectory (${mode === 'proper' ? 'held-out' : 'interleaved rows'})`));
 
     // Panel B: Predicted vs True scatter (or Ridge bar comparison)
@@ -1180,9 +1196,9 @@ function initLeakageWidget(data) {
       });
       svg.appendChild(el('rect', { x: xB(1) - 26, y: yB(row.proper_heldout_engines_test_rmse), width: 52, height: yB(0) - yB(row.proper_heldout_engines_test_rmse), fill: COLORS.model }));
       svg.appendChild(el('rect', { x: xB(2) - 26, y: yB(row.leaky_random_row_split_test_rmse), width: 52, height: yB(0) - yB(row.leaky_random_row_split_test_rmse), fill: mode === 'leaky' ? COLORS.fail : COLORS.fixed }));
-      svg.appendChild(el('text', { x: xB(1), y: yB(row.proper_heldout_engines_test_rmse) - 6, 'text-anchor': 'middle', fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 }, `${row.proper_heldout_engines_test_rmse}`));
-      svg.appendChild(el('text', { x: xB(2), y: yB(row.leaky_random_row_split_test_rmse) - 6, 'text-anchor': 'middle', fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 }, `${row.leaky_random_row_split_test_rmse}`));
-      svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
+      svg.appendChild(el('text', { x: xB(1), y: yB(row.proper_heldout_engines_test_rmse) - 6, 'text-anchor': 'middle', fill: COLORS.ink, 'font-size': 12, 'font-weight': 600 }, `${row.proper_heldout_engines_test_rmse}`));
+      svg.appendChild(el('text', { x: xB(2), y: yB(row.leaky_random_row_split_test_rmse) - 6, 'text-anchor': 'middle', fill: COLORS.ink, 'font-size': 12, 'font-weight': 600 }, `${row.leaky_random_row_split_test_rmse}`));
+      svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 12, 'font-weight': 600 },
         'B. Linear Ridge resists row memorization (only 1.1% drop)'));
     } else {
       const sc = leak.scatter_and_trajectory[modelId][mode];
@@ -1212,8 +1228,9 @@ function initLeakageWidget(data) {
         }));
       }
       const rmseVal = mode === 'proper' ? row.proper_heldout_engines_test_rmse : row.leaky_random_row_split_test_rmse;
-      svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 },
-        `B. ${row.model_label} (${mode}, RMSE = ${rmseVal})`));
+      const shortLbl = row.model_label.replace('HistGradientBoostingRegressor', 'HistGBR');
+      svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 12, 'font-weight': 600 },
+        `B. ${shortLbl} (${mode}, RMSE = ${rmseVal})`));
     }
 
     host.innerHTML = '';
@@ -1272,12 +1289,12 @@ function renderFigure7(data) {
     const bw = 24;
     svg.appendChild(el('rect', { x: cx - bw - 1, y: yMap(r.dev_cv_rmse), width: bw, height: yMap(0) - yMap(r.dev_cv_rmse), fill: COLORS.dev }));
     svg.appendChild(el('rect', { x: cx + 1, y: yMap(r.rmse_all), width: bw, height: yMap(0) - yMap(r.rmse_all), fill: COLORS.test }));
-    svg.appendChild(el('text', { x: cx - bw / 2 - 1, y: yMap(r.dev_cv_rmse) - 5, 'text-anchor': 'middle', fill: COLORS.dev, 'font-size': 9.5, 'font-weight': 600 }, r.dev_cv_rmse.toFixed(1)));
-    svg.appendChild(el('text', { x: cx + bw / 2 + 1, y: yMap(r.rmse_all) - 5, 'text-anchor': 'middle', fill: COLORS.testInk, 'font-size': 9.5, 'font-weight': 600 }, r.rmse_all.toFixed(1)));
+    svg.appendChild(el('text', { x: cx - bw / 2 - 1, y: yMap(r.dev_cv_rmse) - 5, 'text-anchor': 'middle', fill: COLORS.dev, 'font-size': 11, 'font-weight': 600 }, r.dev_cv_rmse.toFixed(1)));
+    svg.appendChild(el('text', { x: cx + bw / 2 + 1, y: yMap(r.rmse_all) - 5, 'text-anchor': 'middle', fill: COLORS.testInk, 'font-size': 11, 'font-weight': 600 }, r.rmse_all.toFixed(1)));
   });
 
-  svg.appendChild(el('text', { x: W - pad.r, y: pad.t, 'text-anchor': 'end', fill: COLORS.dev, 'font-size': 10.5, 'font-weight': 600 }, '■ 80 Dev CV   '));
-  svg.appendChild(el('text', { x: W - pad.r, y: pad.t + 15, 'text-anchor': 'end', fill: COLORS.testInk, 'font-size': 10.5, 'font-weight': 600 }, '■ 20 Held-Out Test'));
+  svg.appendChild(el('text', { x: W - pad.r, y: pad.t, 'text-anchor': 'end', fill: COLORS.dev, 'font-size': 11.8, 'font-weight': 600 }, '■ 80 Dev CV   '));
+  svg.appendChild(el('text', { x: W - pad.r, y: pad.t + 16, 'text-anchor': 'end', fill: COLORS.testInk, 'font-size': 11.8, 'font-weight': 600 }, '■ 20 Held-Out Test'));
 
   host.innerHTML = '';
   host.appendChild(svg);
@@ -1324,9 +1341,9 @@ function renderFigure8(data) {
     svg.appendChild(el('path', { d: buildLinePath(m.pr_recall, m.pr_precision, xA, yA), fill: 'none', stroke: s.color, 'stroke-width': 2.0, 'stroke-dasharray': s.dash }));
     svg.appendChild(el('text', {
       x: xA(0.05),
-      y: yA(0.76 - idx * 0.09),
+      y: yA(0.78 - idx * 0.11),
       fill: s.color === COLORS.test ? COLORS.testInk : s.color,
-      'font-size': 9.8,
+      'font-size': 11.2,
       'font-weight': 600,
       'paint-order': 'stroke',
       stroke: '#FFFFFF',
@@ -1334,7 +1351,7 @@ function renderFigure8(data) {
       'stroke-linejoin': 'round',
     }, s.label));
   });
-  svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 }, 'A. Precision-Recall (dev CV)'));
+  svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 12.2, 'font-weight': 600 }, 'A. Precision-Recall (dev CV)'));
 
   // Panel B: Calibration curve
   const padB = { l: 452, r: 22, t: 28, b: 44 };
@@ -1359,7 +1376,7 @@ function renderFigure8(data) {
     const m = prc.models[s.id];
     svg.appendChild(el('path', { d: buildLinePath(m.cal_mean_pred, m.cal_frac_pos, xB, yB), fill: 'none', stroke: s.color, 'stroke-width': 2.0, 'stroke-dasharray': s.dash }));
   });
-  svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 }, 'B. Calibration reliability (diagonal = ideal)'));
+  svg.appendChild(el('text', { x: padB.l + 4, y: padB.t - 8, fill: COLORS.ink, 'font-size': 12.2, 'font-weight': 600 }, 'B. Calibration reliability (diagonal = ideal)'));
 
   host.innerHTML = '';
   host.appendChild(svg);
@@ -1395,23 +1412,23 @@ function initErrorBrowser(data, explorerHandle) {
     shortest_lived: {
       unitId: 24,
       jumpModel: 'rung4_trends_logreg',
-      desc: 'Engine #24 fails at cycle 147 (shortest lifetime in held-out test set). Fixed schedule K*=179 misses it and pays failure cost 100.',
-      wrong: 'HistGBR over-predicts early wear by up to +40.08 cycles before converging tightly inside the final 30 cycles (last-30 mean error +1.30 cycles).',
-      reason: 'Steep late HPC wear triggers Logistic at cycle 130 (cost 17) and HistGBR at cycle 140 (cost 7).',
+      desc: '<strong>Engine #24</strong> fails at <strong>cycle 147</strong> (shortest lifetime in held-out test set). Fixed schedule <strong>K*=179</strong> misses it and pays failure cost <strong>100</strong>.',
+      wrong: 'HistGBR over-predicts early wear by up to <strong>+40.08 cycles</strong> before converging tightly inside the final <strong>30 cycles</strong> (last-30 mean error <strong>+1.30 cycles</strong>).',
+      reason: 'Steep late HPC wear triggers Logistic at <strong>cycle 130 (cost 17)</strong> and HistGBR at <strong>cycle 140 (cost 7)</strong>.',
     },
     longest_lived: {
       unitId: 92,
       jumpModel: 'rung5_trends_hgb',
-      desc: 'Engine #92 survives 341 cycles (longest in held-out test set). Fixed K*=179 pulls it 162 cycles early (cost 162).',
-      wrong: 'HistGBR with locked threshold tau=9.0 fails to dip below 9.0 prior to cycle 341, causing its lone test failure (cost 100).',
-      reason: 'Tree leaves average older training units conservatively near extreme cycle age 341, whereas Logistic Regression fires at cycle 323 (cost 18).',
+      desc: '<strong>Engine #92</strong> survives <strong>341 cycles</strong> (longest in held-out test set). Fixed <strong>K*=179</strong> pulls it <strong>162 cycles early (cost 162)</strong>.',
+      wrong: 'HistGBR with locked threshold <strong>tau=9.0</strong> fails to dip below <strong>9.0</strong> prior to <strong>cycle 341</strong>, causing its lone test failure (<strong>cost 100</strong>).',
+      reason: 'Tree leaves average older training units conservatively near extreme cycle age <strong>341</strong>, whereas Logistic Regression fires at <strong>cycle 323 (cost 18)</strong>.',
     },
     worst_asymmetric_error: {
       unitId: 61,
       jumpModel: 'rung5_trends_hgb',
-      desc: 'Engine #61 fails at cycle 185 and posts the highest mean NASA asymmetric score (5.043) outside the shortest/longest extremes.',
-      wrong: 'HistGBR over-predicts mid-wear RUL by up to +44.08 cycles before rapid late correction.',
-      reason: 'Engine #61 starts healthier than average before wearing rapidly; both sensor policies still trigger alarms before failure (Logistic @166, HistGBR @177).',
+      desc: '<strong>Engine #61</strong> fails at <strong>cycle 185</strong> and posts the highest mean NASA asymmetric score (<strong>5.043</strong>) outside the shortest/longest extremes.',
+      wrong: 'HistGBR over-predicts mid-wear RUL by up to <strong>+44.08 cycles</strong> before rapid late correction.',
+      reason: 'Engine #61 starts healthier than average before wearing rapidly; both sensor policies still trigger alarms before failure (Logistic <strong>@166</strong>, HistGBR <strong>@177</strong>).',
     },
   };
 
@@ -1430,21 +1447,21 @@ function initErrorBrowser(data, explorerHandle) {
     if (activeCaseKey) {
       const cs = csMap[activeCaseKey];
       const cp = caseCopy[activeCaseKey];
-      takeawayEl.textContent =
-        `Case study — Engine #${cs.unit_id} (lifetime ${cs.max_cycle} cyc): Fixed schedule costs ${cs.fixed_cost.toFixed(0)}, ` +
-        `Logistic costs ${cs.logreg_cost.toFixed(0)} (alarm @${cs.logreg_alarm_cycle}), and HistGBR costs ${cs.hgb_cost.toFixed(0)} ` +
-        `(${cs.hgb_alarm_cycle !== null ? `alarm @${cs.hgb_alarm_cycle}` : 'missed alarm'}).`;
-      descEl.textContent = cp.desc;
-      wrongEl.textContent = cp.wrong;
+      takeawayEl.innerHTML =
+        `Case study — <strong>Engine #${cs.unit_id}</strong> (lifetime <strong>${cs.max_cycle} cyc</strong>): Fixed schedule costs <strong>${cs.fixed_cost.toFixed(0)}</strong>, ` +
+        `Logistic costs <strong>${cs.logreg_cost.toFixed(0)}</strong> (alarm <strong>@${cs.logreg_alarm_cycle}</strong>), and HistGBR costs <strong>${cs.hgb_cost.toFixed(0)}</strong> ` +
+        `(${cs.hgb_alarm_cycle !== null ? `alarm <strong>@${cs.hgb_alarm_cycle}</strong>` : '<strong>missed alarm</strong>'}).`;
+      descEl.innerHTML = cp.desc;
+      wrongEl.innerHTML = cp.wrong;
       reasonEl.innerHTML = `${cp.reason} <a href="#explorer-widget" class="jump-explorer" data-model="${cp.jumpModel}">Inspect in explorer</a>.`;
       renderCaseTrajectorySvg(cs);
     } else {
-      takeawayEl.textContent =
-        `Held-out Engine #${audit.unit_id} (lifetime ${audit.max_cycle} cyc): HistGBR RMSE = ${audit.hgb_rmse}, NASA asym = ${audit.hgb_nasa_asym_mean}. ` +
-        `Policy costs at 100:1 — Fixed: ${audit.fixed_cost}, Logistic: ${audit.logreg_cost}, HistGBR: ${audit.hgb_cost}.`;
-      descEl.textContent = `Engine #${audit.unit_id} runs ${audit.max_cycle} cycles. Fixed schedule K*=179 outcome: ${audit.fixed_outcome} (cost ${audit.fixed_cost}).`;
-      wrongEl.textContent = `HistGBR RMSE is ${audit.hgb_rmse} (Ridge RMSE ${audit.ridge_rmse}), max over-prediction +${audit.hgb_max_overpred} cyc, last-30 mean error ${audit.hgb_last30_mean_err} cyc.`;
-      reasonEl.innerHTML = `Logistic alarms at cycle ${audit.logreg_alarm_cycle ?? 'none'} (cost ${audit.logreg_cost}); HistGBR alarms at cycle ${audit.hgb_alarm_cycle ?? 'none'} (cost ${audit.hgb_cost}). <a href="#explorer-widget" class="jump-explorer" data-model="rung4_trends_logreg">Inspect in explorer</a>.`;
+      takeawayEl.innerHTML =
+        `Held-out <strong>Engine #${audit.unit_id}</strong> (lifetime <strong>${audit.max_cycle} cyc</strong>): HistGBR RMSE = <strong>${audit.hgb_rmse}</strong>, NASA asym = <strong>${audit.hgb_nasa_asym_mean}</strong>. ` +
+        `Policy costs at <strong>100:1</strong> — Fixed: <strong>${audit.fixed_cost}</strong>, Logistic: <strong>${audit.logreg_cost}</strong>, HistGBR: <strong>${audit.hgb_cost}</strong>.`;
+      descEl.innerHTML = `<strong>Engine #${audit.unit_id}</strong> runs <strong>${audit.max_cycle} cycles</strong>. Fixed schedule <strong>K*=179</strong> outcome: ${audit.fixed_outcome} (<strong>cost ${audit.fixed_cost}</strong>).`;
+      wrongEl.innerHTML = `HistGBR RMSE is <strong>${audit.hgb_rmse}</strong> (Ridge RMSE <strong>${audit.ridge_rmse}</strong>), max over-prediction <strong>+${audit.hgb_max_overpred} cyc</strong>, last-30 mean error <strong>${audit.hgb_last30_mean_err} cyc</strong>.`;
+      reasonEl.innerHTML = `Logistic alarms at cycle <strong>${audit.logreg_alarm_cycle ?? 'none'}</strong> (<strong>cost ${audit.logreg_cost}</strong>); HistGBR alarms at cycle <strong>${audit.hgb_alarm_cycle ?? 'none'}</strong> (<strong>cost ${audit.hgb_cost}</strong>). <a href="#explorer-widget" class="jump-explorer" data-model="rung4_trends_logreg">Inspect in explorer</a>.`;
       renderAuditBarSvg(audit);
     }
 
@@ -1483,7 +1500,7 @@ function initErrorBrowser(data, explorerHandle) {
     const rx = W - pad.r;
     svg.appendChild(el('line', { x1: rx, x2: rx, y1: H - pad.b, y2: pad.t, stroke: COLORS.rule, 'stroke-width': 1 }));
     [0, 0.5, 1.0].forEach((p) => {
-      svg.appendChild(el('text', { x: rx + 6, y: yProb(p) + 3.5, fill: COLORS.model, 'font-size': 10 }, p.toFixed(1)));
+      svg.appendChild(el('text', { x: rx + 6, y: yProb(p) + 4, fill: COLORS.model, 'font-size': 11.5 }, p.toFixed(1)));
     });
 
     svg.appendChild(el('path', { d: buildLinePath(cs.cycles, cs.true_rul, xMap, yRul), fill: 'none', stroke: COLORS.ink, 'stroke-width': 2.3 }));
@@ -1501,7 +1518,7 @@ function initErrorBrowser(data, explorerHandle) {
       y: fixedInside ? pad.t + 56 : pad.t + 12,
       'text-anchor': fixedInside ? 'end' : 'start',
       fill: COLORS.fixedInk,
-      'font-size': 9.8,
+      'font-size': 11.2,
       'font-weight': 600,
       ...halo,
     }, `Fixed K*=${cs.fixed_k_dev}`));
@@ -1514,7 +1531,7 @@ function initErrorBrowser(data, explorerHandle) {
         y: pad.t + 26,
         'text-anchor': lrRight ? 'start' : 'end',
         fill: COLORS.model,
-        'font-size': 9.8,
+        'font-size': 11.2,
         'font-weight': 600,
         ...halo,
       }, `LogReg @${cs.logreg_alarm_cycle}`));
@@ -1527,15 +1544,15 @@ function initErrorBrowser(data, explorerHandle) {
         y: pad.t + 41,
         'text-anchor': hgbRight ? 'start' : 'end',
         fill: COLORS.testInk,
-        'font-size': 9.8,
+        'font-size': 11.2,
         'font-weight': 600,
         ...halo,
       }, `HistGBR @${cs.hgb_alarm_cycle}`));
     } else {
-      svg.appendChild(el('text', { x: xMap(cs.max_cycle) - 6, y: pad.t + 41, 'text-anchor': 'end', fill: COLORS.fail, 'font-size': 10, 'font-weight': 700, ...halo }, 'HistGBR missed (cost 100)'));
+      svg.appendChild(el('text', { x: xMap(cs.max_cycle) - 6, y: pad.t + 41, 'text-anchor': 'end', fill: COLORS.fail, 'font-size': 11.5, 'font-weight': 700, ...halo }, 'HistGBR missed (cost 100)'));
     }
 
-    svg.appendChild(el('text', { x: pad.l, y: 15, fill: COLORS.ink, 'font-size': 10, 'font-weight': 600 },
+    svg.appendChild(el('text', { x: pad.l, y: 15, fill: COLORS.ink, 'font-size': 11.2, 'font-weight': 600 },
       'True RUL (black) · HistGBR pred (amber) · Ridge pred (slate dashed) · P(alarm) (teal dotted)'));
 
     host.innerHTML = '';
@@ -1570,7 +1587,7 @@ function initErrorBrowser(data, explorerHandle) {
     bars.forEach((b, i) => {
       const cx = xMap(i + 0.5);
       svg.appendChild(el('rect', { x: cx - 32, y: yMap(b.val), width: 64, height: yMap(0) - yMap(b.val), fill: b.color }));
-      svg.appendChild(el('text', { x: cx, y: yMap(b.val) - 6, 'text-anchor': 'middle', fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 }, b.val.toFixed(1)));
+      svg.appendChild(el('text', { x: cx, y: yMap(b.val) - 6, 'text-anchor': 'middle', fill: COLORS.ink, 'font-size': 12, 'font-weight': 600 }, b.val.toFixed(1)));
     });
     host.innerHTML = '';
     host.appendChild(svg);
