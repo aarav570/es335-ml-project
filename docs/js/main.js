@@ -784,22 +784,22 @@ function initMainExplorer(data) {
 
     roModelCost.textContent = modelTestCost.toFixed(2);
     roFixedCost.textContent = fixed.testCost.toFixed(2);
-    roSavings.textContent = `${savings >= 0 ? '+' : ''}${savings.toFixed(2)} (${savingsPct.toFixed(1)}%)`;
-    roSavings.className = `readout-val ${savings >= 0 ? 'readout-val--model' : 'readout-val--fail'}`;
+    if (roSavings) {
+      roSavings.textContent = `${savings >= 0 ? '+' : ''}${savings.toFixed(2)} (${savingsPct.toFixed(1)}%)`;
+      roSavings.className = `readout-val ${savings >= 0 ? 'readout-val--model' : 'readout-val--fail'}`;
+    }
     roFailures.textContent = `${testFail} / 20 (${(testFail * 5).toFixed(0)}%)`;
-    roWasted.textContent = `${testWasted.toFixed(2)} cyc`;
-    roBreakeven.textContent = beStr;
+    if (roWasted) roWasted.textContent = `${testWasted.toFixed(2)} cyc`;
+    if (roBreakeven) roBreakeven.textContent = beStr;
 
     const thText = model.score_is_rul ? `RUL &le; <strong>${thVal.toFixed(1)}</strong>` : `<em>p</em> &ge; <strong>${thVal.toFixed(2)}</strong>`;
     const devOptText = model.score_is_rul ? `&tau;*_dev = <strong>${devOptVal.toFixed(1)}</strong>` : `<em>p</em>*_dev = <strong>${devOptVal.toFixed(2)}</strong>`;
     const lockNote = isDevLocked
-      ? `using the development-locked threshold (${devOptText})`
-      : `at manual threshold ${thText} (development-locked was ${devOptText})`;
+      ? `dev-locked (${devOptText})`
+      : `manual ${thText} (dev-locked: ${devOptText})`;
 
     takeawayEl.innerHTML =
-      `On the <strong>20</strong> held-out test engines at cost ratio <strong>${r}:1</strong>, <strong>${model.label}</strong> ${lockNote} averages <strong>${modelTestCost.toFixed(2)}</strong> cost per engine ` +
-      `(<strong>${testFail}</strong> failure${testFail === 1 ? '' : 's'}, <strong>${testWasted.toFixed(1)}</strong> wasted cycles) versus <strong>${fixed.testCost.toFixed(2)}</strong> for the dev-tuned fixed schedule <strong>K*=${fixed.kStar}</strong> (<strong>${fixed.testFail}</strong> failure${fixed.testFail === 1 ? '' : 's'}) — ` +
-      `${savings >= 0 ? `saving <strong>${savings.toFixed(2)} per engine (${savingsPct.toFixed(1)}%)</strong>` : `costing <strong>${Math.abs(savings).toFixed(2)}</strong> more than fixed`}.`;
+      `At <strong>${r}:1</strong> (${lockNote}): <strong>${model.label}</strong> costs <strong>${modelTestCost.toFixed(2)}</strong> vs. <strong>${fixed.testCost.toFixed(2)}</strong> fixed (<strong>${savings >= 0 ? `saves ${savingsPct.toFixed(1)}%` : `costs ${Math.abs(savings).toFixed(2)} more`}</strong>).`;
 
     // ---- Panel A: Cost Curve across ratios 10..300 ----
     const ratios = [10, 20, 30, 50, 75, 100, 150, 200, 300];
