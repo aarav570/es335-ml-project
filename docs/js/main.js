@@ -137,15 +137,22 @@ function drawAxes(svg, { xMap, yMap, xMin, xMax, yMin, yMax, xTicks, yTicks, xLa
   }
 
   if (yLabel) {
+    const maxTickLen = yTicks.reduce((acc, t) => {
+      const s = yFmt ? yFmt(t) : String(Math.round(t));
+      return Math.max(acc, s.length);
+    }, 1);
+    const labelOffset = Math.max(38, maxTickLen * 6.2 + 15);
+    const lx = Math.max(12, x0 - labelOffset);
+    const ly = (y0 + y1) / 2;
     g.appendChild(
       el('text', {
-        x: 13,
-        y: (y0 + y1) / 2,
+        x: lx,
+        y: ly,
         'text-anchor': 'middle',
         fill: COLORS.ink,
         'font-size': 11,
         'font-weight': 600,
-        transform: `rotate(-90 13 ${(y0 + y1) / 2})`,
+        transform: `rotate(-90 ${lx} ${ly})`,
       }, yLabel)
     );
   }
@@ -161,9 +168,9 @@ function renderHeroChart(data) {
   const host = document.getElementById('hero-chart-host');
   if (!host || !hero) return;
 
-  const W = 540;
-  const H = 290;
-  const pad = { l: 48, r: 44, t: 24, b: 40 };
+  const W = 580;
+  const H = 320;
+  const pad = { l: 54, r: 40, t: 22, b: 39 };
   const svg = createSvg(W, H, 'Held-out Engine 24 sensor trace and alarm cycles');
 
   const xMap = scaleLinear(1, 185, pad.l, W - pad.r);
@@ -189,7 +196,7 @@ function renderHeroChart(data) {
   svg.appendChild(el('line', { x1: rx, x2: rx, y1: H - pad.b, y2: pad.t, stroke: COLORS.rule, 'stroke-width': 1 }));
   [0, 0.5, 1.0].forEach((p) => {
     const py = yProb(p);
-    svg.appendChild(el('text', { x: rx + 6, y: py + 3.5, fill: COLORS.model, 'font-size': 10 }, p.toFixed(1)));
+    svg.appendChild(el('text', { x: rx + 6, y: py + 3.5, fill: COLORS.model, 'font-size': 10.5 }, p.toFixed(1)));
   });
 
   // Shaded w=30 alarm zone (cycles 117..147)
@@ -205,11 +212,14 @@ function renderHeroChart(data) {
   }));
   svg.appendChild(el('text', {
     x: (xZone0 + xZone1) / 2,
-    y: pad.t + 12,
+    y: pad.t + 13,
     'text-anchor': 'middle',
     fill: COLORS.model,
-    'font-size': 9.5,
+    'font-size': 10.2,
     'font-weight': 600,
+    stroke: '#F7F8FA',
+    'stroke-width': 3,
+    'paint-order': 'stroke',
   }, 'w <= 30 zone'));
 
   // Logistic alarm probability curve (dotted teal)
@@ -218,7 +228,7 @@ function renderHeroChart(data) {
     d: probPath,
     fill: 'none',
     stroke: COLORS.model,
-    'stroke-width': 1.8,
+    'stroke-width': 1.95,
     'stroke-dasharray': '4,3',
   }));
 
@@ -229,17 +239,17 @@ function renderHeroChart(data) {
     d: sPath,
     fill: 'none',
     stroke: COLORS.ink,
-    'stroke-width': 2.4,
+    'stroke-width': 2.6,
     class: reduceMotion ? 'hero-trace-line' : 'hero-trace-line is-animating',
   });
   svg.appendChild(traceEl);
 
   // Vertical markers: Logistic (130), HistGBR (140), Failure (147), Fixed K* (179)
   const markers = [
-    { x: 130, color: COLORS.model, dash: 'none', label: 'Logistic @130', yOff: 32, anchor: 'end' },
-    { x: 140, color: COLORS.test, dash: '3,2', label: 'HistGBR @140', yOff: 50, anchor: 'end' },
-    { x: 147, color: COLORS.fail, dash: 'none', label: 'Failure @147', yOff: 16, anchor: 'start' },
-    { x: 179, color: COLORS.fixed, dash: '5,4', label: 'Fixed K*=179 (missed)', yOff: 70, anchor: 'end' },
+    { x: 130, color: COLORS.model, dash: 'none', label: 'Logistic @130', yOff: 34, anchor: 'end' },
+    { x: 140, color: COLORS.test, dash: '3,2', label: 'HistGBR @140', yOff: 54, anchor: 'end' },
+    { x: 147, color: COLORS.fail, dash: 'none', label: 'Failure @147', yOff: 17, anchor: 'start' },
+    { x: 179, color: COLORS.fixed, dash: '5,4', label: 'Fixed K*=179 (missed)', yOff: 76, anchor: 'end' },
   ];
   markers.forEach((m) => {
     const px = xMap(m.x);
@@ -258,29 +268,35 @@ function renderHeroChart(data) {
       y: pad.t + m.yOff,
       'text-anchor': m.anchor,
       fill: m.color === COLORS.test ? COLORS.testInk : m.color === COLORS.fixed ? COLORS.fixedInk : m.color,
-      'font-size': 10,
+      'font-size': 10.8,
       'font-weight': 600,
       'paint-order': 'stroke',
       stroke: '#FFFFFF',
-      'stroke-width': 3,
+      'stroke-width': 3.2,
       'stroke-linejoin': 'round',
     }, m.label));
   });
 
   // Direct line labels
   svg.appendChild(el('text', {
-    x: xMap(22),
-    y: ySensor(-1.25),
+    x: xMap(10),
+    y: ySensor(0.35),
     fill: COLORS.ink,
-    'font-size': 10.5,
+    'font-size': 11,
     'font-weight': 600,
+    stroke: '#F7F8FA',
+    'stroke-width': 3.5,
+    'paint-order': 'stroke',
   }, 'Sensor 11 trailing mean (k=30)'));
   svg.appendChild(el('text', {
-    x: xMap(55),
-    y: yProb(0.11),
+    x: xMap(76),
+    y: yProb(0.14),
     fill: COLORS.model,
-    'font-size': 10,
+    'font-size': 10.8,
     'font-weight': 600,
+    stroke: '#F7F8FA',
+    'stroke-width': 3.5,
+    'paint-order': 'stroke',
   }, 'P(alarm)'));
 
   host.innerHTML = '';
@@ -309,7 +325,7 @@ function renderFigure1(data) {
 
   const W = 760;
   const H = 260;
-  const pad = { l: 48, r: 22, t: 22, b: 42 };
+  const pad = { l: 58, r: 22, t: 22, b: 42 };
   const svg = createSvg(W, H, 'Fleet lifetime percentage distribution across development and held-out engines');
 
   const xMap = scaleLinear(120, 380, pad.l, W - pad.r);
@@ -404,7 +420,7 @@ function renderFigure2(data) {
   const pc1 = aligned.series.pc1;
 
   // Panel A: Sensor 11 aligned to failure
-  const padA = { l: 54, r: 410, t: 26, b: 42 };
+  const padA = { l: 58, r: 422, t: 28, b: 44 };
   const xA = scaleLinear(-200, 0, padA.l, W - padA.r);
   const yA = scaleLinear(47.0, 48.4, H - padA.b, padA.t);
 
@@ -433,7 +449,7 @@ function renderFigure2(data) {
     'A. Sensor 11 mean ± 1 SD (80 dev engines)'));
 
   // Panel B: 1D PCA Health Index
-  const padB = { l: 438, r: 22, t: 26, b: 42 };
+  const padB = { l: 452, r: 22, t: 28, b: 44 };
   const xB = scaleLinear(-200, 0, padB.l, W - padB.r);
   const yB = scaleLinear(-6.5, 4.0, H - padB.b, padB.t);
 
@@ -484,7 +500,7 @@ function renderFigure3(data) {
   const slope30 = eng.sensor_11_slope_k30;
 
   // Panel A: Raw vs Trailing Mean
-  const padA = { l: 52, r: 410, t: 26, b: 42 };
+  const padA = { l: 58, r: 422, t: 28, b: 44 };
   const xA = scaleLinear(1, eng.max_cycle, padA.l, W - padA.r);
   const yA = scaleLinear(47.0, 48.3, H - padA.b, padA.t);
 
@@ -510,7 +526,7 @@ function renderFigure3(data) {
     'A. Trailing mean suppresses cycle noise'));
 
   // Panel B: Trailing OLS Slope
-  const padB = { l: 438, r: 22, t: 26, b: 42 };
+  const padB = { l: 452, r: 22, t: 28, b: 44 };
   const xB = scaleLinear(1, eng.max_cycle, padB.l, W - padB.r);
   const yB = scaleLinear(-0.015, 0.030, H - padB.b, padB.t);
 
@@ -784,7 +800,7 @@ function initMainExplorer(data) {
     const maxY = Math.max(90, ...fixSeries, ...modTestSeries) * 1.1;
     const WA = 420;
     const HA = 285;
-    const padA = { l: 46, r: 24, t: 22, b: 42 };
+    const padA = { l: 56, r: 24, t: 30, b: 42 };
     const svgA = createSvg(WA, HA, 'Cost curve across failure-to-waste ratios');
     const xA = scaleLinear(10, 300, padA.l, WA - padA.r);
     const yA = scaleLinear(0, maxY, HA - padA.b, padA.t);
@@ -836,13 +852,31 @@ function initMainExplorer(data) {
     svgA.appendChild(el('circle', { cx: xA(r), cy: yA(modelTestCost), r: 4.5, fill: COLORS.model, stroke: '#FFFFFF', 'stroke-width': 1.4 }));
     svgA.appendChild(el('circle', { cx: xA(r), cy: yA(fixed.testCost), r: 4.2, fill: COLORS.fixed, stroke: '#FFFFFF', 'stroke-width': 1.4 }));
 
-    // Direct labels
-    svgA.appendChild(el('text', { x: xA(205), y: yA(fixSeries[7]) - 8, fill: COLORS.fixedInk, 'font-size': 10.5, 'font-weight': 600 },
-      'Fixed schedule (test)'));
-    svgA.appendChild(el('text', { x: xA(205), y: yA(modTestSeries[7]) + 15, fill: COLORS.model, 'font-size': 10.5, 'font-weight': 600 },
-      'Model policy (test)'));
-    svgA.appendChild(el('text', { x: xA(205), y: yA(modDevSeries[7]) + 29, fill: COLORS.dev, 'font-size': 10 },
-      'Model policy (dev CV)'));
+    // Top key strip + collision-clamped direct labels
+    const keyStrip = el('text', { x: padA.l, y: 14, 'font-size': 9.5, 'font-weight': 600 });
+    keyStrip.appendChild(el('tspan', { fill: COLORS.fixedInk }, 'Fixed schedule (test)'));
+    keyStrip.appendChild(el('tspan', { fill: COLORS.muted }, ' · '));
+    keyStrip.appendChild(el('tspan', { fill: COLORS.model }, 'Model policy (test)'));
+    keyStrip.appendChild(el('tspan', { fill: COLORS.muted }, ' · '));
+    keyStrip.appendChild(el('tspan', { fill: COLORS.dev }, 'Model policy (dev CV)'));
+    svgA.appendChild(keyStrip);
+
+    const yFloor = yA(0) - 8;
+    const upperModelY = Math.min(yA(modTestSeries[7]), yA(modDevSeries[7]));
+    const lowerModelY = Math.max(yA(modTestSeries[7]), yA(modDevSeries[7]));
+    const yModLbl = Math.max(padA.t + 22, Math.min(yFloor - 13, upperModelY - 7));
+    let yDevLbl = lowerModelY + 12 <= yFloor ? lowerModelY + 12 : Math.max(padA.t + 10, yModLbl - 13);
+    if (Math.abs(yDevLbl - yModLbl) < 12) {
+      yDevLbl = Math.max(padA.t + 10, yModLbl - 13);
+    }
+    const yFixLbl = Math.max(padA.t + 10, Math.min(Math.min(yModLbl, yDevLbl) - 13, yA(fixSeries[7]) - 8));
+    const haloAttrs = { stroke: '#FFFFFF', 'stroke-width': 3.5, 'paint-order': 'stroke' };
+    svgA.appendChild(el('text', { x: xA(205), y: yFixLbl, fill: COLORS.fixedInk, 'font-size': 10, 'font-weight': 600, ...haloAttrs },
+      'Fixed (test)'));
+    svgA.appendChild(el('text', { x: xA(205), y: yModLbl, fill: COLORS.model, 'font-size': 10, 'font-weight': 600, ...haloAttrs },
+      'Model (test)'));
+    svgA.appendChild(el('text', { x: xA(205), y: yDevLbl, fill: COLORS.dev, 'font-size': 9.8, ...haloAttrs },
+      'Model (dev CV)'));
 
     hostA.innerHTML = '';
     hostA.appendChild(svgA);
@@ -853,7 +887,7 @@ function initMainExplorer(data) {
     const svgB = createSvg(WB, HB, 'Threshold sensitivity and per-engine alarm outcomes on 20 held-out test engines');
 
     // Top half: Threshold vs Cost (Dev vs Test)
-    const padBTop = { l: 46, r: 18, t: 18, b: 172 };
+    const padBTop = { l: 56, r: 18, t: 18, b: 172 };
     const ths = model.thresholds;
     const thMin = ths[0];
     const thMax = ths[ths.length - 1];
@@ -921,7 +955,7 @@ function initMainExplorer(data) {
     }, `◆ Test hindsight opt (${testHindsightVal}, unavailable in practice)`));
 
     // Bottom half: 20 Held-out Test Engines Timeline
-    const padBBot = { l: 46, r: 18, t: 180, b: 28 };
+    const padBBot = { l: 56, r: 18, t: 180, b: 28 };
     const xEng = scaleLinear(0, 360, padBBot.l, WB - padBBot.r);
     const enginesSorted = model.test_per_engine_alarms
       .map((e) => ({ unit_id: e.unit_id, Te: e.true_lifetime_Te, alarm: e.alarm_cycles[idx] }))
@@ -1075,7 +1109,7 @@ function initLeakageWidget(data) {
     const svg = createSvg(W, H, 'Comparison between proper engine split and leaky random row split');
 
     // Panel A: Held-out Engine #21 trajectory (Random Forest)
-    const padA = { l: 48, r: 410, t: 26, b: 42 };
+    const padA = { l: 58, r: 422, t: 28, b: 44 };
     const xA = scaleLinear(1, traj.cycles.length, padA.l, W - padA.r);
     const yA = scaleLinear(0, 130, H - padA.b, padA.t);
 
@@ -1128,7 +1162,7 @@ function initLeakageWidget(data) {
       `A. Engine #${traj.unit_id} trajectory (${mode === 'proper' ? 'held-out' : 'interleaved rows'})`));
 
     // Panel B: Predicted vs True scatter (or Ridge bar comparison)
-    const padB = { l: 438, r: 22, t: 26, b: 42 };
+    const padB = { l: 452, r: 22, t: 28, b: 44 };
     if (modelId === 'rung4_trends_ridge') {
       const xB = scaleLinear(0, 3, padB.l, W - padB.r);
       const yB = scaleLinear(0, 18, H - padB.b, padB.t);
@@ -1214,7 +1248,7 @@ function renderFigure7(data) {
 
   const W = 780;
   const H = 250;
-  const pad = { l: 54, r: 24, t: 28, b: 46 };
+  const pad = { l: 58, r: 24, t: 28, b: 46 };
   const svg = createSvg(W, H, 'RUL RMSE progression from Rung 0 to Rung 5');
 
   const xMap = scaleLinear(0, rows.length, pad.l, W - pad.r);
@@ -1267,7 +1301,7 @@ function renderFigure8(data) {
   ];
 
   // Panel A: PR curve
-  const padA = { l: 48, r: 410, t: 26, b: 42 };
+  const padA = { l: 58, r: 422, t: 28, b: 44 };
   const xA = scaleLinear(0, 1, padA.l, W - padA.r);
   const yA = scaleLinear(0, 1.04, H - padA.b, padA.t);
   drawAxes(svg, {
@@ -1303,7 +1337,7 @@ function renderFigure8(data) {
   svg.appendChild(el('text', { x: padA.l + 4, y: padA.t - 8, fill: COLORS.ink, 'font-size': 11, 'font-weight': 600 }, 'A. Precision-Recall (dev CV)'));
 
   // Panel B: Calibration curve
-  const padB = { l: 438, r: 22, t: 26, b: 42 };
+  const padB = { l: 452, r: 22, t: 28, b: 44 };
   const xB = scaleLinear(0, 1, padB.l, W - padB.r);
   const yB = scaleLinear(0, 1.04, H - padB.b, padB.t);
   drawAxes(svg, {
@@ -1425,7 +1459,7 @@ function initErrorBrowser(data, explorerHandle) {
   function renderCaseTrajectorySvg(cs) {
     const W = 780;
     const H = 265;
-    const pad = { l: 50, r: 44, t: 32, b: 42 };
+    const pad = { l: 58, r: 44, t: 32, b: 42 };
     const svg = createSvg(W, H, `Engine ${cs.unit_id} predicted RUL and alarm trajectory`);
     const maxX = Math.max(cs.max_cycle, cs.fixed_k_dev) + 10;
     const xMap = scaleLinear(1, maxX, pad.l, W - pad.r);
@@ -1461,17 +1495,44 @@ function initErrorBrowser(data, explorerHandle) {
 
     // Markers
     svg.appendChild(el('line', { x1: xMap(cs.fixed_k_dev), x2: xMap(cs.fixed_k_dev), y1: pad.t, y2: H - pad.b, stroke: COLORS.fixed, 'stroke-dasharray': '5,4', 'stroke-width': 1.6 }));
-    svg.appendChild(el('text', { x: xMap(cs.fixed_k_dev) + 4, y: pad.t + 12, fill: COLORS.fixedInk, 'font-size': 9.8, 'font-weight': 600, ...halo }, `Fixed K*=${cs.fixed_k_dev}`));
+    const fixedInside = cs.fixed_k_dev > cs.max_cycle * 0.75;
+    svg.appendChild(el('text', {
+      x: fixedInside ? xMap(cs.fixed_k_dev) - 4 : xMap(cs.fixed_k_dev) + 4,
+      y: fixedInside ? pad.t + 56 : pad.t + 12,
+      'text-anchor': fixedInside ? 'end' : 'start',
+      fill: COLORS.fixedInk,
+      'font-size': 9.8,
+      'font-weight': 600,
+      ...halo,
+    }, `Fixed K*=${cs.fixed_k_dev}`));
 
     if (cs.logreg_alarm_cycle !== null) {
       svg.appendChild(el('line', { x1: xMap(cs.logreg_alarm_cycle), x2: xMap(cs.logreg_alarm_cycle), y1: pad.t, y2: H - pad.b, stroke: COLORS.model, 'stroke-width': 1.6 }));
-      svg.appendChild(el('text', { x: xMap(cs.logreg_alarm_cycle) - 4, y: pad.t + 26, 'text-anchor': 'end', fill: COLORS.model, 'font-size': 9.8, 'font-weight': 600, ...halo }, `LogReg @${cs.logreg_alarm_cycle}`));
+      const lrRight = cs.logreg_alarm_cycle < maxX * 0.25;
+      svg.appendChild(el('text', {
+        x: lrRight ? xMap(cs.logreg_alarm_cycle) + 4 : xMap(cs.logreg_alarm_cycle) - 4,
+        y: pad.t + 26,
+        'text-anchor': lrRight ? 'start' : 'end',
+        fill: COLORS.model,
+        'font-size': 9.8,
+        'font-weight': 600,
+        ...halo,
+      }, `LogReg @${cs.logreg_alarm_cycle}`));
     }
     if (cs.hgb_alarm_cycle !== null) {
       svg.appendChild(el('line', { x1: xMap(cs.hgb_alarm_cycle), x2: xMap(cs.hgb_alarm_cycle), y1: pad.t, y2: H - pad.b, stroke: COLORS.test, 'stroke-dasharray': '3,2', 'stroke-width': 1.6 }));
-      svg.appendChild(el('text', { x: xMap(cs.hgb_alarm_cycle) - 4, y: pad.t + 40, 'text-anchor': 'end', fill: COLORS.testInk, 'font-size': 9.8, 'font-weight': 600, ...halo }, `HistGBR @${cs.hgb_alarm_cycle}`));
+      const hgbRight = cs.hgb_alarm_cycle < maxX * 0.25;
+      svg.appendChild(el('text', {
+        x: hgbRight ? xMap(cs.hgb_alarm_cycle) + 4 : xMap(cs.hgb_alarm_cycle) - 4,
+        y: pad.t + 41,
+        'text-anchor': hgbRight ? 'start' : 'end',
+        fill: COLORS.testInk,
+        'font-size': 9.8,
+        'font-weight': 600,
+        ...halo,
+      }, `HistGBR @${cs.hgb_alarm_cycle}`));
     } else {
-      svg.appendChild(el('text', { x: xMap(cs.max_cycle) - 6, y: pad.t + 40, 'text-anchor': 'end', fill: COLORS.fail, 'font-size': 10, 'font-weight': 700, ...halo }, 'HistGBR missed (cost 100)'));
+      svg.appendChild(el('text', { x: xMap(cs.max_cycle) - 6, y: pad.t + 41, 'text-anchor': 'end', fill: COLORS.fail, 'font-size': 10, 'font-weight': 700, ...halo }, 'HistGBR missed (cost 100)'));
     }
 
     svg.appendChild(el('text', { x: pad.l, y: 15, fill: COLORS.ink, 'font-size': 10, 'font-weight': 600 },
@@ -1484,7 +1545,7 @@ function initErrorBrowser(data, explorerHandle) {
   function renderAuditBarSvg(audit) {
     const W = 780;
     const H = 220;
-    const pad = { l: 54, r: 24, t: 28, b: 44 };
+    const pad = { l: 58, r: 24, t: 28, b: 44 };
     const svg = createSvg(W, H, `Policy cost comparison for Engine ${audit.unit_id}`);
     const maxY = Math.max(110, audit.fixed_cost, audit.logreg_cost, audit.hgb_cost) * 1.15;
     const xMap = scaleLinear(0, 3, pad.l, W - pad.r);
@@ -1674,6 +1735,43 @@ function initUIControls() {
     sections.forEach((sec) => obs.observe(sec));
   }
 
+  // Sequential scroll reveal of sections
+  const revealSections = Array.from(document.querySelectorAll('.reveal-section'));
+  const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!prefersReducedMotion && 'IntersectionObserver' in window && revealSections.length > 0) {
+    document.documentElement.classList.add('js-reveal-active');
+    const revealObs = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: '0px 0px -6% 0px', threshold: 0.04 }
+    );
+    revealSections.forEach((sec) => revealObs.observe(sec));
+
+    // Reveal target section on anchor click or hash change immediately
+    const revealTargetHash = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      const target = document.getElementById(hash);
+      if (target) {
+        target.classList.add('is-revealed');
+        const parentSec = target.closest('.reveal-section');
+        if (parentSec) parentSec.classList.add('is-revealed');
+      }
+    };
+    window.addEventListener('hashchange', revealTargetHash);
+    if (window.location.hash) {
+      setTimeout(revealTargetHash, 60);
+    }
+  } else {
+    revealSections.forEach((sec) => sec.classList.add('is-revealed'));
+  }
+
   // Copy buttons on command blocks
   document.querySelectorAll('.copy-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
@@ -1695,6 +1793,153 @@ function initUIControls() {
       setTimeout(() => {
         btn.textContent = 'Copy';
       }, 1500);
+    });
+  });
+
+  // Record default open state on grouped drawers so collapse resets cleanly to initial defaults
+  document.querySelectorAll('details[data-drawer-group]').forEach((d) => {
+    d.dataset.defaultOpen = d.open ? '1' : '0';
+  });
+
+  // Expand / reset toggle buttons on collapsible tables (Table 3, 5, 6, 8)
+  function syncTable3Switcher(mode) {
+    const sw = document.querySelector('[data-rung-switcher="table3-wrap"]');
+    if (!sw) return;
+    sw.querySelectorAll('button[data-rung-filter]').forEach((b) => {
+      b.setAttribute('aria-pressed', String(b.dataset.rungFilter === mode));
+    });
+  }
+
+  document.querySelectorAll('.table-toggle-btn[data-table-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const wrap = document.getElementById(btn.dataset.tableTarget);
+      if (!wrap) return;
+      wrap.classList.remove('filter-baselines', 'filter-sensors');
+      const expanded = wrap.classList.toggle('is-expanded');
+      btn.setAttribute('aria-expanded', String(expanded));
+      btn.textContent = expanded ? btn.dataset.labelCollapse : btn.dataset.labelExpand;
+      const statusEl = document.getElementById(btn.dataset.statusTarget);
+      if (statusEl) {
+        statusEl.textContent = expanded ? btn.dataset.statusExpanded : btn.dataset.statusCollapsed;
+      }
+      if (wrap.id === 'table3-wrap') {
+        syncTable3Switcher(expanded ? 'all' : 'key');
+      }
+    });
+  });
+
+  // Model ladder filter bar for Table 3
+  document.querySelectorAll('[data-rung-switcher]').forEach((sw) => {
+    const wrap = document.getElementById(sw.dataset.rungSwitcher);
+    if (!wrap) return;
+    const footerBtn = wrap.querySelector('.table-toggle-btn[data-table-target="table3-wrap"]');
+    const statusEl = document.getElementById('table3-toggle-status');
+    sw.querySelectorAll('button[data-rung-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.rungFilter;
+        syncTable3Switcher(mode);
+        wrap.classList.remove('filter-baselines', 'filter-sensors', 'is-expanded');
+        if (mode === 'all') {
+          wrap.classList.add('is-expanded');
+        } else if (mode === 'baselines') {
+          wrap.classList.add('is-expanded', 'filter-baselines');
+        } else if (mode === 'sensors') {
+          wrap.classList.add('is-expanded', 'filter-sensors');
+        }
+        const isAll = mode !== 'key';
+        if (footerBtn) {
+          footerBtn.setAttribute('aria-expanded', String(isAll));
+          footerBtn.textContent = isAll ? footerBtn.dataset.labelCollapse : footerBtn.dataset.labelExpand;
+        }
+        if (statusEl) {
+          const map = {
+            key: 'Showing 4 key rungs of 6 (summary view)',
+            all: 'Showing all 6 model rungs',
+            baselines: 'Showing 3 baseline rungs (Rungs 0–2)',
+            sensors: 'Showing 3 sensor model rungs (Rungs 3–5)',
+          };
+          statusEl.textContent = map[mode] || '';
+        }
+      });
+    });
+  });
+
+  // Segmented figure switchers (Section 2 Data & Section 6 Results)
+  document.querySelectorAll('[data-fig-switcher]').forEach((sw) => {
+    const group = sw.dataset.figSwitcher;
+    const figs = Array.from(document.querySelectorAll(`figure[data-fig-group="${group}"]`));
+    const btns = Array.from(sw.querySelectorAll('button[data-fig-mode]'));
+    btns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.figMode;
+        btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        figs.forEach((fig) => {
+          fig.hidden = mode !== 'all' && fig.id !== mode;
+        });
+      });
+    });
+  });
+
+  // Segmented 3-part switcher in Conclusion
+  document.querySelectorAll('[data-conc-switcher]').forEach((sw) => {
+    const parts = Array.from(document.querySelectorAll('.conclusion-part[data-conc-part]'));
+    const btns = Array.from(sw.querySelectorAll('button[data-conc-mode]'));
+    btns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.concMode;
+        btns.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+        parts.forEach((p) => {
+          p.hidden = mode !== 'all' && p.dataset.concPart !== mode;
+        });
+      });
+    });
+  });
+
+  // Group expand / reset buttons for progressive-disclosure drawers
+  document.querySelectorAll('[data-group-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.groupToggle;
+      const drawers = Array.from(document.querySelectorAll(`details[data-drawer-group="${group}"]`));
+      const nextExpanded = btn.getAttribute('aria-expanded') !== 'true';
+      drawers.forEach((d) => {
+        d.open = nextExpanded ? true : d.dataset.defaultOpen === '1';
+      });
+      btn.setAttribute('aria-expanded', String(nextExpanded));
+      btn.textContent = nextExpanded ? btn.dataset.labelCollapse : btn.dataset.labelExpand;
+    });
+  });
+
+  // Toggle buttons on Reproduction command blocks
+  function setCmdBlockOpen(block, open) {
+    const pre = block.querySelector('pre');
+    const toggleBtn = block.querySelector('.cmd-toggle-btn');
+    if (pre) pre.hidden = !open;
+    block.classList.toggle('is-collapsed', !open);
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', String(open));
+      toggleBtn.textContent = open ? 'Hide commands' : 'Show commands';
+    }
+  }
+
+  document.querySelectorAll('.cmd-toggle-btn[data-cmd-target]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const pre = document.getElementById(btn.dataset.cmdTarget);
+      const block = btn.closest('.cmd-block');
+      if (!pre || !block) return;
+      setCmdBlockOpen(block, pre.hidden);
+    });
+  });
+
+  document.querySelectorAll('[data-cmd-group-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.cmdGroupToggle;
+      const blocks = Array.from(document.querySelectorAll(`.cmd-block[data-cmd-group="${group}"]`));
+      const nextExpanded = btn.getAttribute('aria-expanded') !== 'true';
+      blocks.forEach((block, idx) => {
+        setCmdBlockOpen(block, nextExpanded ? true : idx === 0);
+      });
+      btn.setAttribute('aria-expanded', String(nextExpanded));
+      btn.textContent = nextExpanded ? btn.dataset.labelCollapse : btn.dataset.labelExpand;
     });
   });
 }

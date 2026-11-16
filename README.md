@@ -1,4 +1,4 @@
-# Predictive Maintenance on NASA C-MAPSS Turbofan Engines
+# Predicting Engine Failure from Sensor History and Comparing it with Fixed Replacement.
 
 **Course:** ES 335: Machine Learning (2026)  
 **Authors:** Dhvanil Shah (`25110105`), Aarav Malde (`25110003`)  
