@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/report.css?v=20261117-v10">
+  <link rel="stylesheet" href="css/report.css?v=20261117-v11">
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -95,17 +95,6 @@
                 <span class="hero-stat-label">Calibrated Rung 4 alarm policy</span>
               </div>
             </div>
-          </div>
-
-          <div class="opening-right hero-cascade-3">
-            <figure class="hero-figure" aria-labelledby="hero-fig-caption">
-              <div class="chart-svg-host" id="hero-chart-host" hidden></div>
-              <img class="chart-fallback" id="hero-chart-fallback" src="figures/hero_engine_24.png" alt="Held-out test engine #24 failing at cycle 147 while logistic regression alarms at cycle 130 and HistGBR alarms at cycle 140 before the fixed schedule at cycle 179.">
-              <p class="sr-summary">Held-out test Engine #24 runs to failure at cycle 147. Standardized trailing Sensor 11 climbs steeply after cycle 110. Logistic regression crosses its locked 0.99 alarm threshold at cycle 130 (17 cycles remaining), HistGradientBoosting crosses tau = 9.0 at cycle 140 (7 cycles remaining), and a fixed schedule at cycle 179 fails 32 cycles too late.</p>
-              <figcaption id="hero-fig-caption">
-                <strong>Hero trace — Held-out test Engine #24 (lifetime 147 cycles).</strong> Fixed replacement at <strong>cycle 179</strong> misses this short-lived unit and incurs a failure penalty; trailing-sensor alarms fire at <strong>cycles 130 and 140</strong>.
-              </figcaption>
-            </figure>
 
             <div class="opening-callouts">
               <details class="howto-drawer">
@@ -162,7 +151,7 @@
               <p>
                 Unplanned turbine failure in service is disproportionately expensive and hazardous compared with retiring a part slightly early. Yet engine lifetimes in NASA C-MAPSS FD001 span more than a twofold range (<strong>128 to 362 cycles</strong>), meaning any single fixed replacement interval either fails on short-lived engines or discards dozens of healthy cycles on long-lived engines.
               </p>
-              <details class="inline-more">
+              <details class="inline-more" open>
                 <summary>Why headline RMSE or accuracy alone is not enough</summary>
                 <p>
                   Headline regression RMSE or classification accuracy alone cannot tell us whether sensor monitoring pays off operationally. A useful model must trigger an alarm within a practical planning window (<em>w</em> = <strong>30 cycles</strong>) without crying wolf mid-life, and it must beat both an age-only timer and the best development-tuned fixed schedule across plausible failure-to-waste cost ratios.
@@ -243,7 +232,6 @@
             <div class="segmented-group" role="group" aria-label="Switch Data figures">
               <button type="button" data-fig-mode="fig-lifetimes" aria-pressed="true">Figure 1: Fleet lifetimes</button>
               <button type="button" data-fig-mode="fig-aligned" aria-pressed="false">Figure 2: Failure-aligned wear &amp; PCA</button>
-              <button type="button" data-fig-mode="all" aria-pressed="false">Show both figures</button>
             </div>
           </div>
 
@@ -269,31 +257,20 @@
           <div class="prose-layout">
             <div class="prose-main">
               <h3>Data-quality findings on the 80 development engines</h3>
-              <div class="disclosure-bar">
-                <span class="disclosure-status">4 key observations (click any row to inspect details)</span>
-                <button
-                  type="button"
-                  class="btn table-toggle-btn"
-                  data-group-toggle="data-quality"
-                  data-label-expand="Expand all 4 findings"
-                  data-label-collapse="Collapse to finding 1"
-                  aria-expanded="false"
-                >Expand all 4 findings</button>
-              </div>
               <div class="drawer-stack">
                 <details class="step-drawer" data-drawer-group="data-quality" open>
                   <summary>1. Ten uninformative raw channels — 3 settings + 7 constant sensors dropped</summary>
                   <p>All <strong>3</strong> operating settings reflect fixed sea-level conditions; <strong>6</strong> sensors (<code>sensor_1, 5, 10, 16, 18, 19</code>) have zero variance and <code>sensor_6</code> toggles only between <strong>21.60</strong> and <strong>21.61 psia</strong> (<code>std = 0.0014</code>). We drop all <strong>10</strong> using development-fold variance checks only, retaining <strong>14</strong> informative sensors.</p>
                 </details>
-                <details class="step-drawer" data-drawer-group="data-quality">
+                <details class="step-drawer" data-drawer-group="data-quality" open>
                   <summary>2. Heterogeneous physical scales — 9,066 rpm vs. 8.44 bypass ratio</summary>
                   <p>Core speed (<code>sensor_9</code>) averages <strong>9,066 rpm</strong> while bypass ratio (<code>sensor_15</code>) averages <strong>8.44</strong>, requiring fold-isolated standardization for linear models.</p>
                 </details>
-                <details class="step-drawer" data-drawer-group="data-quality">
+                <details class="step-drawer" data-drawer-group="data-quality" open>
                   <summary>3. Cycle-to-cycle Gaussian noise — motivates 30-cycle trailing smoothing</summary>
                   <p>Single-cycle readings fluctuate noticeably relative to early-wear drift, motivating trailing-window smoothing across consecutive cycles.</p>
                 </details>
-                <details class="step-drawer" data-drawer-group="data-quality">
+                <details class="step-drawer" data-drawer-group="data-quality" open>
                   <summary>4. Clean benchmark idealization — zero missing values or right-censoring</summary>
                   <p><strong>Zero</strong> missing observations, dropouts, or right-censoring appear in the run-to-failure trajectories—making FD001 cleaner than real airline sensor logs.</p>
                 </details>
@@ -335,17 +312,6 @@
 
           <div class="prose-layout">
             <div class="prose-main">
-              <div class="disclosure-bar">
-                <span class="disclosure-status">5-step causal pipeline (open any step for details)</span>
-                <button
-                  type="button"
-                  class="btn table-toggle-btn"
-                  data-group-toggle="prep-steps"
-                  data-label-expand="Expand all 5 steps"
-                  data-label-collapse="Show concise steps"
-                  aria-expanded="false"
-                >Expand all 5 steps</button>
-              </div>
               <ol class="pipeline-steps">
                 <li>
                   <span class="step-lead"><strong>Screen constant channels per training fold (<code>SensorVarianceFilter</code>):</strong> Removes 3 fixed settings + 7 constant sensors without peeking at validation or test engines.</span>
@@ -356,28 +322,28 @@
                 </li>
                 <li>
                   <span class="step-lead"><strong>Group by <code>unit_id</code> and enforce trailing windows (<code>TrailingWindowFeatureTransformer</code>):</strong> Restricts each cycle (<em>e, t</em>) to past cycles <code>[max(1, t &minus; k + 1), t]</code>.</span>
-                  <details class="inline-more" data-drawer-group="prep-steps">
+                  <details class="inline-more" data-drawer-group="prep-steps" open>
                     <summary>How cross-engine bleed and look-ahead are blocked</summary>
                     <p>Computes features for row (<em>e, t</em>) exclusively over that engine's own past window with primary length <em>k</em> = <strong>30 cycles</strong>, preventing future look-ahead or cross-engine contamination.</p>
                   </details>
                 </li>
                 <li>
                   <span class="step-lead"><strong>Extract smoothed level, drift slope, and instability:</strong> Summarizes level, rate of change, and volatility across <strong>14</strong> sensors + age = <strong>43</strong> features.</span>
-                  <details class="inline-more" data-drawer-group="prep-steps">
+                  <details class="inline-more" data-drawer-group="prep-steps" open>
                     <summary>Exact per-sensor statistics</summary>
                     <p>For each of the <strong>14</strong> retained sensors, computes rolling mean (noise suppression), rolling standard deviation (volatility), and OLS linear drift slope (wear rate), then appends current cycle age <code>t</code>.</p>
                   </details>
                 </li>
                 <li>
                   <span class="step-lead"><strong>Stabilize early cycles (<em>t</em> &lt; 30):</strong> Uses expanding causal windows normalized by the full <strong>30-cycle</strong> slope denominator.</span>
-                  <details class="inline-more" data-drawer-group="prep-steps">
+                  <details class="inline-more" data-drawer-group="prep-steps" open>
                     <summary>Why keep the full-window denominator</summary>
                     <p>Early cycles <code>1..t</code> use causal prefixes while dividing slope numerators by the fixed <strong>30-cycle</strong> denominator so initial single-cycle noise cannot inflate wear rates.</p>
                   </details>
                 </li>
                 <li>
                   <span class="step-lead"><strong>Standardize inside linear folds (<code>DataFrameStandardScaler</code>) &amp; cap RUL at 125:</strong> Scales linear inputs per fold and focuses loss on measurable wear.</span>
-                  <details class="inline-more" data-drawer-group="prep-steps">
+                  <details class="inline-more" data-drawer-group="prep-steps" open>
                     <summary>Leakage guard &amp; flat-cap rationale</summary>
                     <p>Applies zero-mean unit-variance scaling strictly inside training folds for regularized linear models, and caps training RUL targets at <strong>125 cycles</strong> because earlier cycles show flat sensor trajectories.</p>
                   </details>
@@ -917,20 +883,8 @@
                 <span class="readout-val readout-val--fixed" id="ro-fixed-cost">58.40</span>
               </div>
               <div class="readout-item">
-                <span class="readout-label">Savings vs. fixed</span>
-                <span class="readout-val readout-val--model" id="ro-savings">+40.20 (68.8%)</span>
-              </div>
-              <div class="readout-item">
                 <span class="readout-label">Test failures</span>
                 <span class="readout-val readout-val--fail" id="ro-failures">0 / 20 (0%)</span>
-              </div>
-              <div class="readout-item">
-                <span class="readout-label">Mean wasted life</span>
-                <span class="readout-val" id="ro-wasted">18.20 cyc</span>
-              </div>
-              <div class="readout-item">
-                <span class="readout-label">Break-even ratio (test)</span>
-                <span class="readout-val readout-val--test" id="ro-breakeven">10.0 : 1</span>
               </div>
             </div>
 
@@ -1068,15 +1022,6 @@
             </table>
           </div>
 
-          <div class="view-switcher span-wide" data-fig-switcher="results-figs">
-            <span class="view-switcher-label">Supporting progression &amp; calibration view</span>
-            <div class="segmented-group" role="group" aria-label="Switch Results supporting figures">
-              <button type="button" data-fig-mode="fig-ladder" aria-pressed="true">Figure 7: Rung 0–5 progression</button>
-              <button type="button" data-fig-mode="fig-pr-cal" aria-pressed="false">Figure 8: PR &amp; calibration curves</button>
-              <button type="button" data-fig-mode="all" aria-pressed="false">Show both figures</button>
-            </div>
-          </div>
-
           <figure class="report-figure span-wide" id="fig-ladder" data-fig-group="results-figs">
             <div class="chart-svg-host" id="fig7-svg-host" hidden></div>
             <img class="chart-fallback" src="figures/cv_baseline_ladder_progression.png" loading="lazy" alt="RUL RMSE and maintenance policy cost progression across Rungs 0 through 5.">
@@ -1085,7 +1030,7 @@
             </figcaption>
           </figure>
 
-          <figure class="report-figure span-wide" id="fig-pr-cal" data-fig-group="results-figs" hidden>
+          <figure class="report-figure span-wide" id="fig-pr-cal" data-fig-group="results-figs">
             <div class="chart-svg-host" id="fig8-svg-host" hidden></div>
             <img class="chart-fallback" src="figures/cv_pr_and_calibration_curves.png" loading="lazy" alt="Precision-Recall and calibration reliability curves across Rung 2, Rung 3, Rung 4, and Rung 5 alarm classifiers.">
             <figcaption>
@@ -1263,7 +1208,7 @@
               <p>
                 Across the <strong>4,291</strong> held-out test cycles in Table 8, prediction variance peaks in mid-wear transitions (<strong>RUL 61–90 cycles</strong>: HistGBR RMSE = <strong>18.44</strong>, mean bias <strong>+9.26</strong>), where some engines degrade steadily while healthier units remain near baseline. Once engines cross inside the final <strong>0–15 cycles</strong>, HistGBR error drops sharply to <strong>3.40 RMSE (+1.44 bias)</strong>, less than half of Ridge's <strong>6.91 RMSE</strong>.
               </p>
-              <details class="inline-more">
+              <details class="inline-more" open>
                 <summary>Why low near-failure RMSE can still miss an extreme engine (#92)</summary>
                 <p>
                   Low average RMSE near failure does not guarantee zero policy misses when a hard regression cutoff meets training-boundary scatter. On <strong>Engine #92 (341 cycles)</strong>, HistGBR stops just above &tau;* = <strong>9.0</strong>, whereas calibrated Logistic Regression integrates strong late sensor slopes into <em>p</em> &ge; <strong>0.99</strong> at <strong>cycle 323</strong>.
@@ -1306,17 +1251,6 @@
 
           <div class="prose-layout">
             <div class="prose-main">
-              <div class="disclosure-bar">
-                <span class="disclosure-status">6 scope &amp; modeling boundaries (open any item to read its effect)</span>
-                <button
-                  type="button"
-                  class="btn table-toggle-btn"
-                  data-group-toggle="limitations"
-                  data-label-expand="Expand all 6 limitations"
-                  data-label-collapse="Collapse to top 2"
-                  aria-expanded="false"
-                >Expand all 6 limitations</button>
-              </div>
               <ul class="limitations-list">
                 <li>
                   <details class="lim-drawer" data-drawer-group="limitations" open>
@@ -1331,25 +1265,25 @@
                   </details>
                 </li>
                 <li>
-                  <details class="lim-drawer" data-drawer-group="limitations">
+                  <details class="lim-drawer" data-drawer-group="limitations" open>
                     <summary><span class="lim-title">3. Small held-out test fleet (20 engines)</span></summary>
                     <span class="lim-effect"><strong>Effect on conclusion:</strong> One missed engine changes the fleet failure rate by <strong>5 percentage points</strong> and widens <strong>95%</strong> bootstrap intervals (e.g., fixed-schedule cost spans <strong>[39.20, 79.55]</strong> and HistGBR spans <strong>[8.65, 23.60]</strong>).</span>
                   </details>
                 </li>
                 <li>
-                  <details class="lim-drawer" data-drawer-group="limitations">
+                  <details class="lim-drawer" data-drawer-group="limitations" open>
                     <summary><span class="lim-title">4. Uncensored run-to-failure trajectories</span></summary>
                     <span class="lim-effect"><strong>Effect on conclusion:</strong> Every training engine runs cleanly until failure with no preventive replacements mid-life. Real industrial records are heavily right-censored, requiring survival analysis or truncation handling.</span>
                   </details>
                 </li>
                 <li>
-                  <details class="lim-drawer" data-drawer-group="limitations">
+                  <details class="lim-drawer" data-drawer-group="limitations" open>
                     <summary><span class="lim-title">5. Illustrative failure-to-waste cost ratios (10:1 to 300:1)</span></summary>
                     <span class="lim-effect"><strong>Effect on conclusion:</strong> True airline costs depend on grounding delays, spare parts inventory, and safety regulations. If failure costs less than <strong>10&times;</strong> a wasted cycle, the model stops beating fixed schedules.</span>
                   </details>
                 </li>
                 <li>
-                  <details class="lim-drawer" data-drawer-group="limitations">
+                  <details class="lim-drawer" data-drawer-group="limitations" open>
                     <summary><span class="lim-title">6. Predictive association rather than causal root-cause proof</span></summary>
                     <span class="lim-effect"><strong>Effect on conclusion:</strong> High weights on <code>sensor_11</code> and <code>sensor_3</code> track simulator degradation state, not whether intervening on static pressure alone would extend engine life.</span>
                   </details>
@@ -1387,53 +1321,51 @@
             Strictly trailing sensor trends give reliable early warning of simulated turbofan failure and cut maintenance costs substantially below fixed schedules across cost ratios from <strong>20:1 to 300:1</strong>.
           </p>
 
-          <div class="prose-layout">
-            <div class="prose-main">
-              <div class="view-switcher" data-conc-switcher="conclusion-parts">
-                <span class="view-switcher-label">Focus conclusion part</span>
-                <div class="segmented-group" role="group" aria-label="Switch Conclusion subsections">
-                  <button type="button" data-conc-mode="1" aria-pressed="true">1. What was found</button>
-                  <button type="button" data-conc-mode="2" aria-pressed="false">2. What was not shown</button>
-                  <button type="button" data-conc-mode="3" aria-pressed="false">3. What would change</button>
-                  <button type="button" data-conc-mode="all" aria-pressed="false">Show all 3 parts</button>
-                </div>
-              </div>
-
-              <div class="conclusion-part" data-conc-part="1">
-                <h3>What was found</h3>
-                <p>
-                  Grouping splits strictly by engine and engineering <strong>30-cycle</strong> trailing mean, standard deviation, and OLS slope features reduces held-out RUL RMSE from <strong>41.56</strong> (mean baseline) and <strong>28.27</strong> (age-only) down to <strong>11.73 cycles</strong> (HistGradientBoosting, 95% CI <strong>[10.34, 12.99]</strong>), while calibrated L2 logistic regression achieves <strong>0.9888</strong> test PR-AUC (95% CI <strong>[0.9804, 0.9946]</strong>). Translated into a replacement decision rule locked on development engines, sensor-triggered maintenance lowers <strong>100:1</strong> test cost from <strong>58.40</strong> (fixed <em>K</em>* = <strong>179</strong>, <strong>4 failures</strong>) to <strong>18.20</strong> with <strong>zero failures</strong> (logistic regression, <strong>68.8% savings</strong>) or <strong>13.90</strong> with <strong>one missed</strong> long-lived engine (HistGBR, <strong>76.2% savings</strong>).
-                </p>
-              </div>
-
-              <div class="conclusion-part" data-conc-part="2" hidden>
-                <h3>What was not shown</h3>
-                <p>
-                  This study does not demonstrate generalization across multiple flight operating regimes, multi-fault interactions, missing or corrupted telemetry, or real airline maintenance logs. Nor do feature weights establish causal control over physical compressor degradation.
-                </p>
-              </div>
-
-              <div class="conclusion-part" data-conc-part="3" hidden>
-                <h3>What would change the conclusion</h3>
-                <p>
-                  The advantage over a fixed replacement schedule would narrow or vanish if in-service failure cost dropped below <strong>~10&times;</strong> the cost of one wasted flight cycle, if fleet sensors suffered uncalibrated dropouts across flight regimes without regime normalization, or if maintenance shops required multi-week rather than <strong>30-cycle</strong> scheduling lead times in an environment with high mid-wear noise.
-                </p>
-              </div>
+          <div class="conclusion-grid">
+            <div class="conclusion-part conclusion-part--found" data-conc-part="1">
+              <span class="conclusion-eyebrow">01 &middot; Core Finding</span>
+              <h3>What was found</h3>
+              <ul class="conclusion-list">
+                <li><strong>Prediction accuracy:</strong> 30-cycle trailing sensor trends cut held-out RUL RMSE from 41.56 (mean) and 28.27 (age-only) down to <strong>11.73 cycles</strong> (HistGBR), with <strong>0.9888 PR-AUC</strong> for L2 logistic regression.</li>
+                <li><strong>Zero-failure reliability:</strong> Calibrated logistic regression lowers 100:1 test cost from 58.40 (fixed <em>K</em>* = 179, 4 failures) to <strong>18.20 with 0 failures</strong> (<strong>68.8% savings</strong>).</li>
+                <li><strong>Minimum total cost:</strong> HistGBR further reduces mean test cost to <strong>13.90</strong> (<strong>76.2% savings</strong>), with 1 missed long-lived engine.</li>
+              </ul>
             </div>
-            <div class="prose-side">
-              <aside class="margin-note">
-                <details class="margin-note-box">
-                  <summary>Choosing between Rung 4 &amp; Rung 5</summary>
-                  <p>Rung 4 Logistic Regression achieves <strong>0/20 failures</strong> and tight cost CI (<strong>[17.10, 19.35]</strong>), whereas Rung 5 HistGBR reduces wasted life further to <strong>8.90 cycles</strong> (mean cost <strong>13.90, [8.65, 23.60]</strong>) with <strong>1 failure</strong>.</p>
-                </details>
-              </aside>
-              <aside class="margin-note">
-                <details class="margin-note-box">
-                  <summary>Whole-engine bootstrap stability</summary>
-                  <p>Paired test savings over fixed <em>K</em>*=<strong>179</strong> stay positive across <strong>100.0%</strong> of <strong>1,000</strong> engine-level bootstrap resamples at <strong>100:1</strong> for Logistic Regression (<strong>+40.20</strong>) and HistGBR (<strong>+44.50</strong>).</p>
-                </details>
-              </aside>
+
+            <div class="conclusion-part conclusion-part--not-shown" data-conc-part="2">
+              <span class="conclusion-eyebrow">02 &middot; Scope Boundary</span>
+              <h3>What was not shown</h3>
+              <ul class="conclusion-list">
+                <li><strong>Multi-regime flight conditions:</strong> Results come from a single sea-level operating regime and a single compressor fault mode (FD001).</li>
+                <li><strong>Real-world telemetry noise:</strong> Does not test resilience to sensor dropouts, calibration drift, right-censored maintenance logs, or multi-fault interactions.</li>
+                <li><strong>Causal intervention:</strong> Feature weights reflect predictive association with wear state, not physical root-cause control.</li>
+              </ul>
             </div>
+
+            <div class="conclusion-part conclusion-part--change" data-conc-part="3">
+              <span class="conclusion-eyebrow">03 &middot; Falsifiability</span>
+              <h3>What would change the conclusion</h3>
+              <ul class="conclusion-list">
+                <li><strong>Low failure penalty:</strong> If in-service failure cost dropped below <strong>~10&times;</strong> the cost of a wasted cycle, fixed schedules become competitive.</li>
+                <li><strong>Uncalibrated regime shifts:</strong> Uncorrected sensor drift or dropouts across varying altitudes without regime normalization.</li>
+                <li><strong>Longer lead-time requirements:</strong> Requiring multi-week scheduling horizons well beyond 30 cycles where mid-wear noise dominates.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="prose-side conclusion-notes">
+            <aside class="margin-note">
+              <details class="margin-note-box">
+                <summary>Choosing between Rung 4 &amp; Rung 5</summary>
+                <p>Rung 4 Logistic Regression achieves <strong>0/20 failures</strong> and tight cost CI (<strong>[17.10, 19.35]</strong>), whereas Rung 5 HistGBR reduces wasted life further to <strong>8.90 cycles</strong> (mean cost <strong>13.90, [8.65, 23.60]</strong>) with <strong>1 failure</strong>.</p>
+              </details>
+            </aside>
+            <aside class="margin-note">
+              <details class="margin-note-box">
+                <summary>Whole-engine bootstrap stability</summary>
+                <p>Paired test savings over fixed <em>K</em>*=<strong>179</strong> stay positive across <strong>100.0%</strong> of <strong>1,000</strong> engine-level bootstrap resamples at <strong>100:1</strong> for Logistic Regression (<strong>+40.20</strong>) and HistGBR (<strong>+44.50</strong>).</p>
+              </details>
+            </aside>
           </div>
 
           <details class="section-details">
@@ -1451,23 +1383,10 @@
             Every split, model run, metric table, PNG figure, and web JSON payload regenerates deterministically from saved configuration and scripts in the repository.
           </p>
 
-          <div class="disclosure-bar span-wide">
-            <span class="disclosure-status">3-step reproduction pipeline</span>
-            <button
-              type="button"
-              class="btn table-toggle-btn"
-              data-cmd-group-toggle="repro-cmds"
-              data-label-expand="Expand all 3 command blocks"
-              data-label-collapse="Show Step 1 only"
-              aria-expanded="false"
-            >Expand all 3 command blocks</button>
-          </div>
-
           <div class="cmd-block" data-cmd-group="repro-cmds">
             <div class="cmd-header">
               <span>1. Clone repository &amp; install pinned dependencies</span>
               <span class="cmd-actions">
-                <button type="button" class="cmd-toggle-btn" data-cmd-target="cmd-setup" aria-expanded="true">Hide commands</button>
                 <button type="button" class="copy-btn" data-copy-target="cmd-setup">Copy</button>
               </span>
             </div>
@@ -1478,27 +1397,25 @@ python -m venv .venv
 pip install -r requirements.txt</code></pre>
           </div>
 
-          <div class="cmd-block is-collapsed" data-cmd-group="repro-cmds">
+          <div class="cmd-block" data-cmd-group="repro-cmds">
             <div class="cmd-header">
               <span>2. Verify C-MAPSS FD001 data &amp; generate deterministic 80/20 splits (seed=42)</span>
               <span class="cmd-actions">
-                <button type="button" class="cmd-toggle-btn" data-cmd-target="cmd-data" aria-expanded="false">Show commands</button>
                 <button type="button" class="copy-btn" data-copy-target="cmd-data">Copy</button>
               </span>
             </div>
-            <pre id="cmd-data" hidden><code>python scripts/verify_data.py
+            <pre id="cmd-data"><code>python scripts/verify_data.py
 python scripts/make_splits.py</code></pre>
           </div>
 
-          <div class="cmd-block is-collapsed" data-cmd-group="repro-cmds">
+          <div class="cmd-block" data-cmd-group="repro-cmds">
             <div class="cmd-header">
               <span>3. Run EDA, causality tests, 5-fold CV, held-out test, and website export</span>
               <span class="cmd-actions">
-                <button type="button" class="cmd-toggle-btn" data-cmd-target="cmd-pipeline" aria-expanded="false">Show commands</button>
                 <button type="button" class="copy-btn" data-copy-target="cmd-pipeline">Copy</button>
               </span>
             </div>
-            <pre id="cmd-pipeline" hidden><code>python scripts/run_eda.py
+            <pre id="cmd-pipeline"><code>python scripts/run_eda.py
 python scripts/run_features.py
 python scripts/run_cv.py
 python scripts/run_test_evaluation.py
@@ -1507,7 +1424,6 @@ python scripts/export_web_data.py</code></pre>
 
           <div class="prose-layout">
             <div class="prose-main">
-              <h3>What a reader can verify in the repository</h3>
               <ul class="plain-list">
                 <li><strong>Configuration &amp; seeds:</strong> <a href="https://github.com/dhvanilshah2007/es335-ml-project/blob/main/config.yaml" target="_blank" rel="noopener"><code>config.yaml</code></a> and exact engine split lists in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/data/splits" target="_blank" rel="noopener"><code>data/splits/</code></a>.</li>
                 <li><strong>Leakage-proof code &amp; notebooks:</strong> Modular Python pipeline in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/src" target="_blank" rel="noopener"><code>src/</code></a> and walkthrough notebooks in <a href="https://github.com/dhvanilshah2007/es335-ml-project/tree/main/notebooks" target="_blank" rel="noopener"><code>notebooks/</code></a>.</li>
@@ -1543,6 +1459,6 @@ python scripts/export_web_data.py</code></pre>
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20261117-v10"></script>
+  <script type="module" src="js/main.js?v=20261117-v11"></script>
 </body>
 </html>
