@@ -56,6 +56,12 @@ html {
   color: var(--ink);
 }
 
+@media (min-width: 1080px) {
+  html {
+    zoom: 0.84;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
